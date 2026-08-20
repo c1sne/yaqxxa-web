@@ -123,7 +123,7 @@ async function depositar() {
     for (const p of piezas) {
       const t = `~${palabra}.${p.letra}(${r.n})`;
       invocaciones.append(Object.assign(crear('button', 'chip', t), {
-        onclick: () => { $('#invocacion').value = t; invocar(); }
+        onclick: () => insertarEnEditor(t)
       }));
     }
     caja.append(invocaciones);
@@ -144,90 +144,120 @@ async function depositar() {
   }
 }
 
-// ── invocar ──────────────────────────────────────────────────────────────────
+// ── el editor: acá corre el lenguaje ─────────────────────────────────────────
+//
+// Referencia asumida: flok. Un cuadro negro donde se escribe; ⌃⏎ evalúa la
+// línea del cursor y la hace destellar; ⌃⇧⏎ evalúa todas; ⌃. silencio.
+// Invocar suena y se ve: el audio se reproduce, y la foto o el video ocupan el
+// fondo del tablero. El tablero es el escenario.
 
 const SINTAXIS = /^~?\s*([\p{L}\p{N}_-]+)\s*\.\s*([fsv])\s*\(\s*(\d+)\s*\)\s*$/u;
+const LINEA_ALTO = 20;   // px — tiene que coincidir con el line-height del CSS
 
-// Cada invocación lleva número. Una respuesta lenta de archive.org no puede
-// pisar el resultado de una invocación posterior.
-let generacion = 0;
+const cacheResolucion = new Map();   // "palabra.letra.n" → resultado de ia.resolver
+const sonando = new Set();           // Audio en reproducción, para el silencio
 
-async function invocar() {
-  const mia = ++generacion;
-  const vigente = () => mia === generacion;
-  const salida = $('#salida');
-  salida.innerHTML = '';
+async function resolverConCache(palabra, letra, n) {
+  const clave = `${palabra}.${letra}.${n}`;
+  if (cacheResolucion.has(clave)) return cacheResolucion.get(clave);
+  const r = await ia.resolver(palabra, letra, n);
+  // "no existe" no se cachea: puede existir dentro de un rato
+  if (!r.error) cacheResolucion.set(clave, r);
+  return r;
+}
 
-  const texto = $('#invocacion').value.trim();
+const lineaDelCursor = ed => ed.value.slice(0, ed.selectionStart).split('\n').length - 1;
+
+function destello(nLinea, clase) {
+  const ed = $('#editor');
+  const f = crear('div', 'destello' + (clase ? ' ' + clase : ''));
+  f.style.top = (10 + nLinea * LINEA_ALTO - ed.scrollTop) + 'px';
+  $('#destellos').append(f);
+  setTimeout(() => f.remove(), 650);
+}
+
+function anotar(texto, clase) {
+  const caja = $('#estado-editor');
+  caja.prepend(crear('div', clase || null, texto));
+  while (caja.children.length > 4) caja.lastChild.remove();
+}
+
+async function evaluarLinea(nLinea) {
+  const cruda = ($('#editor').value.split('\n')[nLinea] || '');
+  const texto = cruda.split('#')[0].trim();
+  if (!texto) return;   // vacía o comentario
+
   const m = SINTAXIS.exec(texto);
-  if (!m) { salida.append(crear('p', 'error', 'no entiendo eso. La forma es ~palabra.f(0)')); return; }
-
+  if (!m) {
+    destello(nLinea, 'mal');
+    anotar(`línea ${nLinea + 1} · no entiendo «${texto}» — la forma es ~palabra.f(0)`, 'mal');
+    return;
+  }
   const [, palabra, letra, num] = m;
-  salida.append(crear('p', 'tenue', `resolviendo ~${palabra}.${letra}(${num})…`));
+  destello(nLinea);
 
   let r;
-  try { r = await ia.resolver(palabra, letra, Number(num)); }
-  catch (e) {
-    if (!vigente()) return;
-    salida.innerHTML = '';
-    salida.append(crear('p', 'error', e.message));
-    return;
-  }
-  if (!vigente()) return;
-  salida.innerHTML = '';
+  try { r = await resolverConCache(palabra, letra, Number(num)); }
+  catch (e) { anotar(`línea ${nLinea + 1} · ${e.message}`, 'mal'); return; }
 
   if (r.error) {
-    salida.append(crear('p', 'error', r.error));
-    await pintarIndice(palabra, salida, vigente);
+    destello(nLinea, 'mal');
+    let extra = '';
+    try {
+      const nums = await ia.indice(palabra);
+      extra = nums.length
+        ? ` — ~${palabra} tiene: ${nums.join(', ')}`
+        : ` — ~${palabra} no tiene depósitos todavía`;
+    } catch {}
+    anotar(`línea ${nLinea + 1} · ${r.error}${extra}`, 'mal');
     return;
   }
 
-  const vista = crear('div', 'vista-grande');
-  if (letra === 'f') vista.append(Object.assign(crear('img'), { src: r.url, crossOrigin: 'anonymous' }));
-  if (letra === 'v') vista.append(Object.assign(crear('video'), { src: r.url, controls: true, crossOrigin: 'anonymous', playsInline: true }));
-  if (letra === 's') vista.append(Object.assign(crear('audio'), { src: r.url, controls: true, crossOrigin: 'anonymous' }));
-  salida.append(vista);
-
-  const meta = crear('div', 'meta');
-  meta.append(crear('span', 'tenue', `${r.id} · ${r.archivo} · ${(r.bytes / 1024).toFixed(0)} KB`));
-  const ver = Object.assign(crear('a', null, 'archive.org →'), { href: ia.urlPagina(r.id), target: '_blank', rel: 'noopener' });
-  meta.append(ver);
-  salida.append(meta);
-
-  await pintarFicha(r.id, salida, vigente);
-  await pintarIndice(palabra, salida, vigente);
-}
-
-// La procedencia viaja como archivo dentro del depósito, no solo como metadato.
-async function pintarFicha(id, salida, vigente = () => true) {
-  try {
-    const f = await (await fetch(ia.urlBytes(id, 'ficha.json'))).json();
-    const dl = crear('dl', 'ficha');
-    const filas = [['qué es', f.que], ['quién', f.quien], ['dónde', f.donde],
-                   ['cuándo', f.cuando], ['notas', f.notas],
-                   ['consentimiento', f.consentimiento ? 'sí' : 'no declarado']];
-    for (const [k, v] of filas) {
-      if (!v) continue;
-      dl.append(crear('dt', null, k), crear('dd', null, v));
-    }
-    if (!vigente()) return;
-    if (dl.children.length) { salida.append(crear('div', 'titulillo', 'procedencia')); salida.append(dl); }
-  } catch { if (vigente()) salida.append(crear('p', 'falta', 'este depósito no trae ficha de procedencia')); }
-}
-
-async function pintarIndice(palabra, salida, vigente = () => true) {
-  let nums;
-  try { nums = await ia.indice(palabra); }
-  catch { return; }
-  if (!vigente()) return;
-  const caja = crear('div', 'indice');
-  caja.append(crear('span', 'tenue', nums.length ? `~${palabra} tiene ${nums.length} depósito(s): ` : `~${palabra} no tiene nada todavía`));
-  for (const n of nums) {
-    caja.append(Object.assign(crear('button', 'chip chico', String(n)), {
-      onclick: () => { $('#invocacion').value = `~${palabra}.${SINTAXIS.exec($('#invocacion').value)?.[2] || 'f'}(${n})`; invocar(); }
-    }));
+  if (letra === 's') {
+    const a = new Audio(r.url);
+    a.crossOrigin = 'anonymous';
+    sonando.add(a);
+    a.addEventListener('ended', () => sonando.delete(a));
+    a.play().catch(e => anotar(`línea ${nLinea + 1} · el audio no arrancó: ${e.message}`, 'mal'));
+    anotar(`~${palabra}.s(${num}) suena · ${r.id}`);
+  } else {
+    mostrarEnEscenario(letra, r);
+    anotar(`~${palabra}.${letra}(${num}) en escena · ${r.id}`);
   }
-  salida.append(caja);
+}
+
+function mostrarEnEscenario(letra, r) {
+  const esc = $('#escenario');
+  esc.innerHTML = '';
+  if (letra === 'f') {
+    esc.append(Object.assign(crear('img'), { src: r.url, crossOrigin: 'anonymous' }));
+  } else {
+    const v = Object.assign(crear('video'), {
+      src: r.url, crossOrigin: 'anonymous', playsInline: true, loop: true
+    });
+    esc.append(v);
+    v.play().catch(() => {});
+  }
+}
+
+function silencio() {
+  for (const a of sonando) a.pause();
+  sonando.clear();
+  $('#escenario').innerHTML = '';
+  anotar('silencio');
+}
+
+function evaluarTodo() {
+  $('#editor').value.split('\n').forEach((_, i) => evaluarLinea(i));
+}
+
+/** Los chips del depósito escriben la invocación en el editor y la evalúan. */
+function insertarEnEditor(texto) {
+  const ed = $('#editor');
+  const v = ed.value;
+  ed.value = (v && !v.endsWith('\n') ? v + '\n' : v) + texto + '\n';
+  ed.focus();
+  evaluarLinea(ed.value.split('\n').length - 2);
 }
 
 async function resumenBanco() {
@@ -296,8 +326,17 @@ zona.addEventListener('drop', ev => agregar(ev.dataTransfer.files));
 $('#archivos').addEventListener('change', ev => { agregar(ev.target.files); ev.target.value = ''; });
 $('#palabra').addEventListener('input', revisar);
 $('#depositar').addEventListener('click', depositar);
-$('#invocar').addEventListener('click', invocar);
-$('#invocacion').addEventListener('keydown', e => { if (e.key === 'Enter') invocar(); });
+$('#editor').addEventListener('keydown', e => {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && e.key === 'Enter') {
+    e.preventDefault();
+    if (e.shiftKey) evaluarTodo();
+    else evaluarLinea(lineaDelCursor($('#editor')));
+  } else if (ctrl && e.key === '.') {
+    e.preventDefault();
+    silencio();
+  }
+});
 
 
 // ── bloque mundo ─────────────────────────────────────────────────────────────

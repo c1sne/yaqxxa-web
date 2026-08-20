@@ -263,3 +263,39 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   .cajon { width: 100vw; }
   .riel { top: auto; bottom: 12px; right: 12px; flex-direction: row; }
 }
+
+/* ── el escenario: lo invocado ocupa el fondo del tablero ─────────────────── */
+
+.escenario { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.escenario img, .escenario video { width: 100%; height: 100%; object-fit: cover; opacity: .8; }
+
+/* ── el editor ────────────────────────────────────────────────────────────── */
+
+#bloque-invocar { width: min(640px, 68vw); }
+
+.editor-marco {
+  position: relative;
+  background: #050506;
+  border: 1px solid var(--borde); border-radius: 3px;
+  overflow: hidden;
+}
+#editor {
+  display: block; width: 100%; height: 230px; resize: vertical;
+  background: transparent; color: var(--texto);
+  border: 0; outline: 0;
+  padding: 10px 12px;
+  font: 13px/20px var(--mono);   /* 20px = LINEA_ALTO en main.js */
+  white-space: pre; overflow: auto; tab-size: 2;
+  position: relative; z-index: 0;
+}
+#destellos { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.destello {
+  position: absolute; left: 0; right: 0; height: 20px;
+  background: rgba(127, 212, 193, .30);
+  animation: apagar .6s ease-out forwards;
+}
+.destello.mal { background: rgba(217, 154, 122, .32); }
+@keyframes apagar { to { opacity: 0; } }
+
+.estado-editor { margin-top: 8px; font-size: 11px; display: grid; gap: 2px; color: var(--tenue); }
+.estado-editor .mal { color: var(--alerta); }

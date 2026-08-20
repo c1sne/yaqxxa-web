@@ -29,16 +29,22 @@
 <!-- el tablero: cada bloque es un nodo que se arrastra desde su cabecera -->
 <main id="tablero" class="tablero">
 
+  <!-- lo invocado ocupa el fondo: el tablero es el escenario -->
+  <div id="escenario" class="escenario"></div>
+
   <details class="bloque" id="bloque-invocar" open>
-    <summary><span class="tit">INVOCAR</span><span class="tenue"> · llamar al banco</span></summary>
+    <summary><span class="tit">CÓDIGO</span><span class="tenue"> · el lenguaje corre acá</span></summary>
     <div class="cuerpo">
-      <div class="acciones">
-        <input id="invocacion" type="text" class="invocacion" spellcheck="false"
-               autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
-        <button id="invocar" class="btn">invocar</button>
+      <div class="editor-marco">
+        <div id="destellos"></div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
+                  wrap="off"># yaqxxa · ⌃⏎ evalúa la línea · ⌃⇧⏎ todas · ⌃. silencio
+# .f foto · .s sonido · .v video
+
+~alarako.f(0)
+~alarako.s(0)</textarea>
       </div>
-      <p class="tenue leyenda"><code>.f</code> foto · <code>.s</code> sonido · <code>.v</code> video · <code>n</code> = número de depósito</p>
-      <div id="salida" class="salida"></div>
+      <div id="estado-editor" class="estado-editor"></div>
     </div>
   </details>
 

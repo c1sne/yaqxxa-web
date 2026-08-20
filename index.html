@@ -9,48 +9,99 @@
 </head>
 <body>
 
+<header class="barra">
+  <span class="marca">yaqxxa</span>
+  <span class="version">v4 · banco</span>
+  <span class="hueco"></span>
+  <span id="resumen-banco" class="resumen">…</span>
+</header>
+
 <main>
 
-  <header>
-    <h1>yaqxxa</h1>
-    <p class="bajada">Entorno web de live coding, memoria territorial y soberanía digital.</p>
-    <p class="estado">v4 · empezando de cero · <span id="hora"></span></p>
-  </header>
+<!-- ─────────────── BLOQUE ARCHIVO ─────────────── -->
+<section class="bloque" id="bloque-archivo">
+  <h2>ARCHIVO <span class="tenue">· depositar</span></h2>
 
-  <section>
-    <h2>Qué es esto todavía</h2>
-    <p>Nada. Es el primer commit de la versión definitiva, y lo único que
-    demuestra es que el instrumento llega hasta tu máquina por HTTPS y puede
-    preguntarle qué es capaz de hacer.</p>
-    <p>Hubo tres prototipos antes de éste. Están en un repositorio aparte,
-    junto a la investigación, la bitácora y las conversaciones que originaron
-    el proyecto. Lo que se aprendió ahí entra acá de a una cosa por vez.</p>
-  </section>
+  <div class="cuerpo">
 
-  <section>
-    <h2>Qué puede tu dispositivo</h2>
-    <p class="nota">Esto se mide en tu navegador ahora mismo. No se guarda ni
-    se envía a ninguna parte: no hay servidor detrás de esta página.</p>
-    <dl id="capacidades"></dl>
-    <p class="nota" id="veredicto"></p>
-  </section>
+    <div id="llaves" class="llaves"></div>
 
-  <section>
-    <h2>Lo que sigue</h2>
-    <ol>
-      <li>Un núcleo único: el código y los nodos como dos vistas de un mismo estado.</li>
-      <li>Que suene.</li>
-      <li>Un dato real, peruano y verificable, entrando a la performance.</li>
-      <li>Una palabra conseguida escuchando, no inventada.</li>
-      <li>XR sobre el mismo estado, no como aplicación aparte.</li>
-    </ol>
-  </section>
+    <div id="soltar" class="soltar">
+      <p>arrastrá acá una foto, un sonido o un video</p>
+      <p class="tenue">o <label class="enlace-falso">elegí archivos<input type="file" id="archivos" multiple hidden></label></p>
+    </div>
 
-  <footer>
-    <p>Se desarrolla en el marco de la Escuela de Sensibilización Tecnológica
-    Latinoamericana. Lima, 2026.</p>
-    <p><a href="https://github.com/c1sne/yaqxxa-web">código</a> · sin dependencias · sin analítica · sin cookies</p>
-  </footer>
+    <div id="piezas" class="piezas"></div>
+
+    <div class="campos">
+      <label>palabra
+        <input id="palabra" type="text" placeholder="alarako" autocomplete="off" spellcheck="false">
+      </label>
+      <label>qué es
+        <input id="que" type="text" placeholder="qué es esto, en tus palabras" autocomplete="off">
+      </label>
+      <label>quién
+        <input id="quien" type="text" placeholder="quién lo hizo o lo grabó" autocomplete="off">
+      </label>
+      <label>dónde
+        <input id="donde" type="text" placeholder="dónde" autocomplete="off">
+      </label>
+      <label>cuándo
+        <input id="cuando" type="text" placeholder="cuándo" autocomplete="off">
+      </label>
+      <label class="ancho">notas
+        <input id="notas" type="text" placeholder="lo que haga falta saber" autocomplete="off">
+      </label>
+      <label class="ancho casilla">
+        <input id="consentimiento" type="checkbox">
+        <span>si aparecen personas, dieron su consentimiento para que esto quede en un archivo público</span>
+      </label>
+    </div>
+
+    <div class="acciones">
+      <button id="depositar" class="btn" disabled>depositar</button>
+      <span id="progreso" class="progreso"></span>
+    </div>
+
+    <div id="resultado" class="resultado" hidden></div>
+
+    <p class="aviso">Esto sube a <b>tu</b> cuenta de archive.org, es público y es
+    permanente. yaqxxa no guarda tu material ni tus llaves: no tiene servidor
+    donde guardarlos.</p>
+  </div>
+</section>
+
+<!-- ─────────────── BLOQUE INVOCAR ─────────────── -->
+<section class="bloque" id="bloque-invocar">
+  <h2>INVOCAR <span class="tenue">· llamar al banco</span></h2>
+  <div class="cuerpo">
+    <div class="acciones">
+      <input id="invocacion" type="text" class="invocacion" spellcheck="false"
+             autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
+      <button id="invocar" class="btn">invocar</button>
+    </div>
+    <p class="tenue leyenda">
+      <code>~palabra.f(n)</code> foto · <code>.s(n)</code> sonido ·
+      <code>.v(n)</code> video &nbsp;—&nbsp; <code>n</code> es el número de depósito
+    </p>
+    <div id="salida" class="salida"></div>
+  </div>
+</section>
+
+<details class="mas">
+  <summary>qué puede este dispositivo</summary>
+  <dl id="capacidades"></dl>
+  <p class="nota" id="veredicto"></p>
+</details>
+
+<footer>
+  <p>El banco es una consulta, no un servidor: todo lo que lleve la etiqueta
+  <code>yaqxxa</code> en archive.org forma parte de él. Cada depósito pertenece
+  a quien lo subió.</p>
+  <p><a href="https://github.com/c1sne/yaqxxa-web">código</a> ·
+     <a href="https://archive.org/search?query=subject%3Ayaqxxa">ver el banco</a> ·
+     sin dependencias · sin analítica · sin cookies</p>
+</footer>
 
 </main>
 

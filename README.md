@@ -2,32 +2,65 @@
 
 **Entorno web de live coding, memoria territorial y soberanía digital.**
 
-Versión 4. Empezada de cero el 20 de agosto de 2026, en Lima.
-
 En vivo: **https://c1sne.github.io/yaqxxa-web/**
 
 ---
 
-## Estado
+## El banco
 
-Primer commit. Lo único que hace la página es preguntarle a tu navegador qué es
-capaz de hacer —WebXR, WebGPU, WebAudio, AudioWorklet, MIDI— y decirlo sin
-adornar.
+El banco de yaqxxa no es un servidor. Es **una consulta**: todo lo que lleve la
+etiqueta `yaqxxa` en archive.org forma parte de él.
 
-Es poco a propósito. Lo que se construya acá se construye de a una cosa por vez,
-y cada cosa tiene que funcionar antes de que entre la siguiente.
+```
+subject:"yaqxxa"              todo el banco
+identifier:yaqxxa-alarako-*   todos los depósitos de una palabra
+```
 
-## Por qué de cero
+Nadie lo aloja, nadie lo administra, nadie es su dueño. Dos personas en ciudades
+distintas ven lo mismo porque le hacen la misma pregunta a archive.org. Cada
+depósito pertenece a quien lo subió, bajo su propia cuenta. Si yaqxxa desaparece,
+el banco sigue existiendo.
 
-Hubo tres prototipos antes. Cada uno demostró algo —que el código y los nodos
-pueden ser dos vistas de un mismo estado; que el archivo vivo y la vigilancia se
-construyen con el mismo mecanismo; que WebXR corre sin dependencias— y cada uno
-lo hizo con su propio parser y su propio motor, sin acumular sobre el anterior.
+## Cómo se nombra
 
-Esta versión existe para tener un solo núcleo.
+Un **depósito** es un ítem de archive.org y tiene un número. Dentro puede traer
+una foto, un sonido y un video: los tres comparten el número.
 
-La investigación, la bitácora, las conversaciones de origen y esos tres
-prototipos viven en un repositorio aparte, privado, que funciona como archivo.
+```
+yaqxxa-alarako-0
+├── foto.jpg     →  ~alarako.f(0)
+├── sonido.wav   →  ~alarako.s(0)
+├── video.mp4    →  ~alarako.v(0)
+└── ficha.json      la procedencia, como archivo
+```
+
+El número **no vive en ninguna base de datos**: va en el identificador. Como los
+identificadores de archive.org son únicos globalmente, si `yaqxxa-alarako-0` ya
+existe la creación falla y se prueba con el 1. Eso convierte la unicidad de
+nombres en un contador atómico: dos personas subiendo a la vez desde ciudades
+distintas no pueden pisarse, sin servidor y sin coordinación.
+
+Y el número es estable para siempre. Si alguien borra el 0, no se renumera nada:
+queda un hueco, y el instrumento lo dice en vez de disimularlo.
+
+## Una palabra es lo que la gente le deposita
+
+`alarako` no significa algo porque alguien le escribió una etimología. Significa
+**lo que la gente puso bajo esa palabra**: `~alarako.f(0)` es una foto de
+alguien, `~alarako.f(7)` es la de otra persona, y entre las dos hay una
+diferencia que nadie tuvo que redactar.
+
+De ahí sale la única regla del vocabulario:
+
+> No se agrega una palabra escribiendo documentación. Se agrega dándole material.
+
+## Depositar
+
+Hacen falta tus llaves de archive.org — [archive.org/account/s3.php](https://archive.org/account/s3.php).
+Se quedan en tu navegador y solo se envían a archive.org: yaqxxa **no tiene
+servidor** donde guardarlas aunque quisiera.
+
+Arrastrás el archivo, escribís la palabra, completás la ficha y depositás.
 
 ## Correr localmente
 
@@ -35,35 +68,45 @@ prototipos viven en un repositorio aparte, privado, que funciona como archivo.
 python3 -m http.server 8080
 ```
 
-Y abrir `http://localhost:8080`.
+Sin build, sin `node_modules`, sin instalación.
 
-Nada de build, nada de `node_modules`, nada de instalación. Se abre, se lee y se
-modifica. Cuando llegue el 3D, Three.js va a entrar como archivo local con
-import map, no desde un CDN: XR sin bundler y sin red.
+## Cómo funciona por dentro
 
-## Qué sigue
+| endpoint | para qué |
+|---|---|
+| `archive.org/metadata/<id>` | leer la ficha de un depósito |
+| `archive.org/cors/<id>/<archivo>` | leer los **bytes** — el único que da CORS |
+| `archive.org/advancedsearch.php` | el índice, que es una búsqueda |
+| `s3.us.archive.org` | depositar (PUT desde el navegador) |
 
-1. Un núcleo único: código y nodos como dos vistas de un mismo estado.
-2. Que suene.
-3. Un dato real, peruano y verificable, entrando a la performance.
-4. Una palabra conseguida escuchando, no inventada.
-5. XR sobre el mismo estado, no como aplicación aparte.
+`/download/` y `/serve/` **no** dan CORS. Sin `/cors/` no se pueden leer píxeles
+ni decodificar audio, y el banco sería una vitrina en vez de un instrumento.
 
-## Sobre esta página
+## Estado
 
-No hay servidor detrás. No hay analítica, ni cookies, ni almacenamiento. Las
-capacidades que muestra se miden en tu navegador y se quedan ahí. Son 90 líneas
-en [`main.js`](main.js): se puede comprobar.
+- ✅ depositar desde el navegador a tu cuenta de archive.org
+- ✅ invocar `~palabra.f(n)` `.s(n)` `.v(n)` y que se vea o suene
+- ✅ índice por palabra, huecos detectados, procedencia en `ficha.json`
+- ⬜ que los píxeles y las muestras se vuelvan material del lenguaje
+- ⬜ traza degradada en el repositorio, para que exista sin archive.org
+- ⬜ caché local para tocar sin red
+- ⬜ 3D y XR
+
+## Advertencias
+
+Las llaves S3 de archive.org son de cuenta completa. Viven en `localStorage` de
+tu navegador. **Por eso esta página no tiene ni una dependencia de terceros**: no
+hay ningún script ajeno que pueda leerlas. Se rotan desde tu cuenta.
+
+Lo que depositás es **público y permanente**. Si hay personas en el material,
+tiene que haber consentimiento.
 
 ## Licencia
 
-**Pendiente, y ahora importa.** Este repositorio es público y sin licencia
-elegida, lo que legalmente significa *todos los derechos reservados* — lo
-contrario de lo que el proyecto dice querer ser. Ver [`LICENSE`](LICENSE).
+**Pendiente, y ahora importa** — repositorio público sin licencia significa
+*todos los derechos reservados*. Ver [`LICENSE`](LICENSE).
 
 ## Contexto
 
 Se desarrolla en el marco de la Escuela de Sensibilización Tecnológica
-Latinoamericana, con vínculos a Asimtria (Perú), Sonami y participantes de Chile,
-agentes y espacios de México, Toda la Teoría del Universo y el Centro Cultural de
-México.
+Latinoamericana. Lima, 2026.

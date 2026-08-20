@@ -65,10 +65,17 @@ Arrastrás el archivo, escribís la palabra, completás la ficha y depositás.
 ## Correr localmente
 
 ```bash
-python3 -m http.server 8080
+./servir.sh
 ```
 
-Sin build, sin `node_modules`, sin instalación.
+Y abrir `http://localhost:8099`. Sin build, sin `node_modules`, sin instalación.
+
+El script es `python3 -m http.server` con una diferencia que importa al
+desarrollar: manda `Cache-Control: no-store`, así que editás un archivo,
+recargás, y ves el cambio. Con el servidor pelado el navegador te devuelve la
+versión anterior y perdés media hora buscando un bug que no existe.
+
+Para elegir otro puerto: `./servir.sh 8080`.
 
 ## Cómo funciona por dentro
 

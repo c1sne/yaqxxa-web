@@ -10,7 +10,7 @@
   --borde:  #1e2a45;
   --texto:  #cdd6e6;
   --tenue:  #5f6d8a;
-  --acento: #6f9dff;   /* el color de yaqxxa */
+  --acento: #4d8cff;   /* el color de yaqxxa */
   --frio:   #6fd0e0;
   --alerta: #d98a7a;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -62,7 +62,7 @@ a:hover { color: var(--frio); }
 }
 .icono .glifo { font-size: 17px; line-height: 1; }
 .icono .rotulo { font-size: 9px; letter-spacing: .08em; }
-.icono:hover { color: var(--texto); border-color: #3a3a46; }
+.icono:hover { color: var(--texto); border-color: #2c3e63; }
 .icono.activo { color: var(--acento); border-color: var(--acento); }
 
 /* ── tablero ────────────────────────────────────────────────────────────── */

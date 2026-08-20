@@ -535,10 +535,12 @@ async function abrirMundo() {
   if (mundoListo) return;
   const nota = $('#nota-mundo');
   nota.textContent = 'cargando A-Frame (1,28 MB)…';
+  nota.innerHTML = 'cargando <a href="https://aframe.io/" target="_blank" rel="noopener">A-Frame</a> (1,28 MB)…';
   try {
     await mundo.montar($('#escena'));
     mundoListo = true;
-    nota.textContent = 'A-Frame cargado desde vendor/ — sin CDN, sin red de terceros.';
+    nota.innerHTML = '<a href="https://aframe.io/" target="_blank" rel="noopener">A-Frame ' +
+      (window.AFRAME?.version || '') + '</a> — desde <code>vendor/</code>, sin CDN.';
     pintarParametros();
     const vr = await mundo.soportaVR();
     $('#entrar-vr').hidden = !vr;
@@ -562,6 +564,48 @@ async function abrirMundo() {
 function tecladoDelMundo() {
   const aviso = $('#foco-mundo');
   if (aviso) aviso.textContent = 'clic en el bloque para caminar por el mundo';
+  const nota = $('#nota-mundo');
+  if (nota && !nota.textContent.trim()) {
+    nota.innerHTML = '<a href="https://aframe.io/" target="_blank" rel="noopener">A-Frame</a> ' +
+      'pesa 1,28 MB y se carga solo al abrir este bloque.';
+  }
+}
+
+/**
+ * Un valor sale por el puerto de un parámetro y llega a los que tenga
+ * conectados. Cada destino recibe el valor recortado a su propio rango: un
+ * nivel de audio entre 0 y 1 llega a giro como 0 a 180°/s.
+ */
+function propagar(idOrigen, valor, visitados = new Set()) {
+  if (visitados.has(idOrigen)) return;   // sin lazos infinitos
+  visitados.add(idOrigen);
+
+  // por el cable viaja una proporción, no el número crudo: escala 2.4 de un
+  // rango 0.2–3 sale como 0.79, y cada destino la abre a su propio rango
+  const specOrigen = mundo.PARAMETROS[idOrigen.split(':')[1]];
+  const prop = specOrigen
+    ? (valor - specOrigen.min) / (specOrigen.max - specOrigen.min)
+    : valor;
+
+  for (const destino of tablero.destinosDe(idOrigen)) {
+    const [bloque, param] = destino.split(':');
+    if (!param) continue;                       // cable al bloque entero: no es de parámetro
+    const spec = mundo.PARAMETROS[param];
+    if (bloque !== 'bloque-parametros' || !spec) continue;
+
+    const v = spec.min + (spec.max - spec.min) * Math.min(1, Math.max(0, prop));
+    const ajustado = spec.paso >= 1 ? Math.round(v) : v;
+    mundo.poner(param, ajustado);
+
+    const fila = [...document.querySelectorAll('.parametro')]
+      .find(f => f.querySelector('span')?.textContent === param);
+    if (fila) {
+      fila.querySelector('input').value = ajustado;
+      fila.querySelector('.valor').textContent =
+        (spec.paso >= 1 ? ajustado : ajustado.toFixed(2)) + spec.unidad;
+    }
+    propagar(destino, ajustado, visitados);
+  }
 }
 
 function pintarParametros() {
@@ -577,6 +621,7 @@ function pintarParametros() {
     rango.addEventListener('input', () => {
       const v = parseFloat(rango.value);
       val.textContent = v + spec.unidad;
+      propagar(`bloque-parametros:${nombre}`, v);
       if (!tablero.conectado('bloque-parametros', 'bloque-monitor')) {
         anotar('PARÁMETROS está desconectado del MONITOR — tirá el cable de nuevo', 'mal');
         return;
@@ -585,6 +630,7 @@ function pintarParametros() {
     });
     fila.append(crear('span', null, nombre), rango, val);
     caja.append(fila);
+    tablero.puertosDeParametro(fila, 'bloque-parametros', nombre);
   }
 }
 
@@ -705,6 +751,8 @@ tablero.montarTablero({
     { de: 'bloque-codigo', a: 'bloque-video' }
   ],
   alCambioDeCable: (de, a) => {
+    // un cable entre parámetros siempre hace algo: el valor de uno abre el otro
+    if (de.includes(':') && a.includes(':')) return;
     if (!CABLES_CON_SEMANTICA.has(de + '→' + a)) {
       anotar('ese cable todavía no hace nada — queda guardado igual', 'mal');
     }
@@ -729,6 +777,17 @@ $('#encaje').addEventListener('click', () => {
   $('#encaje').textContent = nuevo;
 });
 
+/** El AUDIO expone su nivel como una salida patcheable: el sonido puede
+ *  manejar cualquier parámetro del mundo con solo tirarle un cable. */
+function salidaDelAudio() {
+  const caja = $('#audio-salidas');
+  if (!caja) return;
+  const fila = crear('div', 'parametro con-puertos');
+  fila.append(crear('span', null, 'nivel'), crear('span', 'barra-nivel'), crear('span', 'valor', '0.00'));
+  caja.append(fila);
+  fila.append(tablero.crearPuerto('bloque-audio:nivel', 'salida', 'salida del nivel — arrastrá a un parámetro'));
+}
+
 function refrescarAudio() {
   const b = $('#audio-onoff');
   b.textContent = sinte.estaCorriendo() ? 'sonando' : 'apagado';
@@ -739,11 +798,25 @@ $('#audio-onoff').addEventListener('click', async () => {
   else await sinte.iniciar();
   refrescarAudio();
 });
+salidaDelAudio();
+
 setInterval(() => {
   const n = sinte.nivel();
   $('#audio-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
   visual.nivel(n);
+  const fila = $('#audio-salidas .parametro');
+  if (fila) {
+    fila.querySelector('.barra-nivel').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
+    fila.querySelector('.valor').textContent = n.toFixed(2);
+  }
+  if (n > 0.001) propagar('bloque-audio:nivel', n);
 }, 90);
+
+const notaMundo = $('#nota-mundo');
+if (notaMundo) {
+  notaMundo.innerHTML = '<a href="https://aframe.io/" target="_blank" rel="noopener">A-Frame</a> ' +
+    'pesa 1,28 MB y se carga solo al abrir este bloque. Todavía no se descargó nada.';
+}
 
 cargarSlots();
 pintarLlaves();

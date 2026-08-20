@@ -442,22 +442,54 @@ document.addEventListener('keydown', e => {
 // ── puertos y cables ─────────────────────────────────────────────────────────
 
 function puertos(bloque) {
-  // Los puertos viven en el summary, no en el details: el contenido de un
-  // details plegado queda en ::details-content y no recibe clics, y un puerto
-  // tiene que poder conectarse aunque el bloque esté plegado.
+  // Los puertos del bloque viven en el summary, no en el details: el contenido
+  // de un details plegado queda en ::details-content y no recibe clics, y un
+  // puerto tiene que poder conectarse aunque el bloque esté plegado.
   const cab = bloque.querySelector('summary');
   for (const tipo of ['entrada', 'salida']) {
-    const p = document.createElement('div');
-    p.className = 'puerto ' + tipo;
-    p.title = tipo === 'salida'
-      ? 'salida — arrastrá hasta la entrada de otro bloque'
-      : 'entrada';
-    cab.append(p);
-    if (tipo === 'salida') tirarCable(bloque, p);
+    cab.append(crearPuerto(bloque.id, tipo, tipo === 'salida'
+      ? 'salida del bloque — arrastrá hasta la entrada de otro'
+      : 'entrada del bloque'));
   }
 }
 
-function tirarCable(bloque, puerto) {
+/**
+ * Un puerto. Su id es el del bloque, o "bloque:parametro" cuando es de un
+ * parámetro suelto: así un cable puede ir de una perilla a otra y no solo de
+ * una caja a otra.
+ */
+export function crearPuerto(id, tipo, titulo) {
+  const p = document.createElement('div');
+  p.className = 'puerto ' + tipo;
+  p.dataset.puerto = id;
+  p.dataset.tipo = tipo;
+  p.title = titulo || (tipo === 'salida' ? 'salida' : 'entrada');
+  if (tipo === 'salida') tirarCable(id, p);
+  return p;
+}
+
+/** Le pone entrada y salida a una fila de parámetro ya creada. */
+export function puertosDeParametro(fila, bloqueId, nombre) {
+  fila.classList.add('con-puertos');
+  fila.prepend(crearPuerto(`${bloqueId}:${nombre}`, 'entrada', `entrada de ${nombre}`));
+  fila.append(crearPuerto(`${bloqueId}:${nombre}`, 'salida', `salida de ${nombre} — arrastrá a otro parámetro`));
+  dibujarCables();
+}
+
+const puertoDe = (id, tipo) =>
+  document.querySelector(`.puerto[data-puerto="${CSS.escape(id)}"][data-tipo="${tipo}"]`);
+
+/** Posición de un puerto en coordenadas del mundo, sirva donde sirva. */
+function posPuerto(el) {
+  const r = el.getBoundingClientRect();
+  const t = tableroEl.getBoundingClientRect();
+  return {
+    x: (r.left + r.width / 2 - t.left - vista.x) / vista.z,
+    y: (r.top + r.height / 2 - t.top - vista.y) / vista.z
+  };
+}
+
+function tirarCable(idOrigen, puerto) {
   let pid = null, tent = null;
 
   puerto.addEventListener('pointerdown', e => {
@@ -470,8 +502,7 @@ function tirarCable(bloque, puerto) {
   });
   puerto.addEventListener('pointermove', e => {
     if (pid === null) return;
-    const d = pantallaAMundo(e.clientX, e.clientY);
-    tent.setAttribute('d', curva(salidaDe(bloque), d));
+    tent.setAttribute('d', curva(posPuerto(puerto), pantallaAMundo(e.clientX, e.clientY)));
   });
   puerto.addEventListener('pointerup', e => {
     if (pid === null) return;
@@ -480,9 +511,10 @@ function tirarCable(bloque, puerto) {
     // setPointerCapture desvía el target: buscamos qué hay bajo el cursor
     const bajo = document.elementFromPoint(e.clientX, e.clientY);
     const entrada = bajo && bajo.closest('.puerto.entrada');
-    const destino = entrada && entrada.closest('details.bloque');
-    if (!destino || destino === bloque) return;
-    alternarConexion(bloque.id, destino.id);
+    if (!entrada) return;
+    const idDestino = entrada.dataset.puerto;
+    if (!idDestino || idDestino === idOrigen) return;
+    alternarConexion(idOrigen, idDestino);
   });
 }
 
@@ -501,10 +533,16 @@ function alternarConexion(de, a) {
   alCambioDeCable(de, a);
 }
 
-const nombre = id => (document.getElementById(id)?.querySelector('.tit')?.textContent || id).trim();
+function nombre(id) {
+  const [bloque, param] = id.split(':');
+  const tit = (document.getElementById(bloque)?.querySelector('.tit')?.textContent || bloque).trim();
+  return param ? `${tit}.${param}` : tit;
+}
 
-const salidaDe = b => ({ x: b.offsetLeft + b.offsetWidth, y: b.offsetTop + 16 });
-const entradaDe = b => ({ x: b.offsetLeft, y: b.offsetTop + 16 });
+/** Los destinos conectados a una salida dada. */
+export function destinosDe(idOrigen) {
+  return conexiones.filter(c => c.de === idOrigen).map(c => c.a);
+}
 
 const curva = (a, b) =>
   `M ${a.x} ${a.y} C ${a.x + 70} ${a.y}, ${b.x - 70} ${b.y}, ${b.x} ${b.y}`;
@@ -517,11 +555,13 @@ export function dibujarCables() {
   if (!svg) return;
   for (const p of svg.querySelectorAll('path:not(.tentativo)')) p.remove();
   for (const c of conexiones) {
-    const de = document.getElementById(c.de), a = document.getElementById(c.a);
-    if (!de || !a) continue;
-    if (de.parentNode !== lienzoEl || a.parentNode !== lienzoEl) continue;   // alguno está expandido
+    const salida = puertoDe(c.de, 'salida'), entrada = puertoDe(c.a, 'entrada');
+    if (!salida || !entrada) continue;                 // el puerto no está a la vista
+    if (!lienzoEl.contains(salida) || !lienzoEl.contains(entrada)) continue;
+    if (!salida.offsetParent || !entrada.offsetParent) continue;   // bloque plegado
     const path = trazo();
-    path.setAttribute('d', curva(salidaDe(de), entradaDe(a)));
+    if (c.de.includes(':') || c.a.includes(':')) path.classList.add('de-parametro');
+    path.setAttribute('d', curva(posPuerto(salida), posPuerto(entrada)));
     path.addEventListener('click', () => alternarConexion(c.de, c.a));
     svg.append(path);
   }

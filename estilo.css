@@ -473,3 +473,22 @@ body.hay-expandido .riel { z-index: 61; }
   padding: 2px 9px;
 }
 .slot-mas:hover { border-color: var(--calido); color: var(--calido); }
+
+/* ── puertos por parámetro ────────────────────────────────────────────────────
+   Cada perilla con su jack, como en un modular: un cable puede ir de un
+   parámetro a otro y no solo de una caja a otra. */
+
+.parametro.con-puertos { position: relative; padding: 0 11px; }
+.parametro.con-puertos > .puerto { width: 9px; height: 9px; border-width: 1.5px; }
+.parametro.con-puertos > .puerto.entrada { left: -3px; }
+.parametro.con-puertos > .puerto.salida  { right: -3px; }
+
+.cables path.de-parametro { stroke: var(--calido); stroke-width: 1.5; }
+
+/* salidas vivas del audio */
+.salidas-vivas { margin-top: 10px; display: grid; gap: 4px; }
+.salidas-vivas .parametro { grid-template-columns: 52px 1fr 40px; }
+.barra-nivel {
+  height: 8px; border: 1px solid var(--borde); border-radius: 2px;
+  background: linear-gradient(to right, var(--calido) var(--nivel, 0%), transparent var(--nivel, 0%));
+}

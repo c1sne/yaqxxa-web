@@ -79,6 +79,12 @@ Para elegir otro puerto: `./servir.sh 8080`.
 
 ## Cómo funciona por dentro
 
+El bloque CÓDIGO reserva el slot 2 para el fragment shader GLSL. Al evaluarlo,
+WebGL recompila el programa del bloque VIDEO. El monitor embebido y la pestaña
+independiente renderizan copias dedicadas del mismo shader como textura dinámica
+de las placas de A-Frame mediante la conexión `VIDEO → MONITOR`. La pestaña
+independiente recibe el estado por `BroadcastChannel`.
+
 | endpoint | para qué |
 |---|---|
 | `archive.org/metadata/<id>` | leer la ficha de un depósito |
@@ -94,10 +100,11 @@ ni decodificar audio, y el banco sería una vitrina en vez de un instrumento.
 - ✅ depositar desde el navegador a tu cuenta de archive.org
 - ✅ invocar `~palabra.f(n)` `.s(n)` `.v(n)` y que se vea o suene
 - ✅ índice por palabra, huecos detectados, procedencia en `ficha.json`
-- ⬜ que los píxeles y las muestras se vuelvan material del lenguaje
+- ✅ shader GLSL editable y salida de VIDEO como superficie del mundo
+- ✅ monitor 3D, pestaña independiente y entrada a WebXR cuando hay visor
+- ⬜ que las muestras de audio se vuelvan material del lenguaje
 - ⬜ traza degradada en el repositorio, para que exista sin archive.org
 - ⬜ caché local para tocar sin red
-- ⬜ 3D y XR
 
 ## Advertencias
 

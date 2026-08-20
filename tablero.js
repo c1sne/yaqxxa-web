@@ -62,6 +62,14 @@ export function conectado(de, a) {
   return conexiones.some(c => c.de === de && c.a === a);
 }
 
+/** Agrega una conexión requerida por una versión nueva sin duplicarla. */
+export function asegurarConexion(de, a) {
+  if (conectado(de, a)) return;
+  conexiones.push({ de, a });
+  guardar(GRAFO, conexiones);
+  dibujarCables();
+}
+
 export function montarTablero(opciones = {}) {
   migrar();
   alAviso = opciones.alAviso || (() => {});

@@ -43,7 +43,14 @@ export const disponible = () => typeof BroadcastChannel !== 'undefined';
 // Tipos de mensaje, listados acá para que no se inventen sueltos:
 //
 //   'parametro'  { nombre, valor }   una perilla se movió
-//   'textura'    { url, id }         una foto del banco entra al mundo
+//   'textura'    { palabra, letra, n, id } una foto del banco entra al mundo
+//   'shader'     { fuente }           GLSL activo del bloque VIDEO
+//   'senal-video' objeto              uniforms de señal del shader
+//   'evento-video' objeto             golpe puntual del motor de audio
+//   'nivel-video' { nivel }           nivel actual del motor de audio
+//   'encaje-video' { modo }           contener o cubrir la foto de entrada
+//   'textura-video' { palabra, letra, n, id } foto de entrada del shader
+//   'salida-video' { activa }         estado del cable VIDEO → MONITOR
 //   'vaciar'     null                se limpió la textura
 //   'hola'       { desde }           una pestaña se presenta
 //   'aqui'       { desde }           respuesta: ya hay alguien

@@ -223,7 +223,10 @@ identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
     tiene una entrada a la izquierda y una salida a la derecha, y un cable se
     tira de un punto al otro. Si desconectás PARÁMETROS del MONITOR, los
     controles dejan de mover el mundo. Si conectás CÓDIGO al MONITOR, las fotos
-    invocadas entran también como textura del espacio.</p>
+    invocadas entran también como textura del espacio. El slot 2 contiene el
+    fragment shader que corre en VIDEO: al evaluarlo, se recompila en vivo. La
+    conexión VIDEO → MONITOR usa esa salida animada como superficie de las
+    placas, también en la pestaña aparte.</p>
     <p class="tenue">El tablero se navega: rueda para zoom, arrastrar el fondo
     para moverse, doble clic para volver. Los bloques se redimensionan desde
     sus bordes y su esquina. Todo queda guardado en tu navegador.</p>

@@ -18,6 +18,7 @@ let cargando = null;
 let escena = null;
 let anillo = null;
 let rig = null;
+let salidaVisual = null;
 
 export const PARAMETROS = {
   giro:      { min: 0,   max: 180, paso: 1,    def: 18,  unidad: '°/s' },
@@ -148,6 +149,48 @@ function registrarCaminar(AFRAME) {
   });
 }
 
+function registrarSuperficieVisual(AFRAME) {
+  if (AFRAME.components['superficie-visual']) return;
+  AFRAME.registerComponent('superficie-visual', {
+    init() {
+      this.canvas = null;
+      this.textura = null;
+      this.material = null;
+      this.conectar = this.conectar.bind(this);
+      this.el.addEventListener('object3dset', this.conectar);
+      this.conectar();
+    },
+
+    conectar() {
+      const malla = this.el.getObject3D('mesh');
+      if (!malla || !salidaVisual) return;
+      if (this.canvas === salidaVisual && this.material && malla.material === this.material) return;
+      this.textura?.dispose();
+      this.material?.dispose();
+      this.canvas = salidaVisual;
+      this.textura = new AFRAME.THREE.CanvasTexture(salidaVisual);
+      this.textura.minFilter = AFRAME.THREE.LinearFilter;
+      this.textura.magFilter = AFRAME.THREE.LinearFilter;
+      this.material = new AFRAME.THREE.MeshBasicMaterial({
+        map: this.textura,
+        side: AFRAME.THREE.DoubleSide
+      });
+      malla.material = this.material;
+    },
+
+    tick() {
+      if (!this.textura || this.canvas !== salidaVisual) this.conectar();
+      if (this.textura) this.textura.needsUpdate = true;
+    },
+
+    remove() {
+      this.el.removeEventListener('object3dset', this.conectar);
+      this.textura?.dispose();
+      this.material?.dispose();
+    }
+  });
+}
+
 // ── escena ───────────────────────────────────────────────────────────────────
 
 export async function montar(contenedor) {
@@ -158,9 +201,10 @@ export async function montar(contenedor) {
   escena.setAttribute('embedded', '');
   escena.setAttribute('vr-mode-ui', 'enabled: false');       // el botón lo ponemos nosotros
   escena.setAttribute('renderer', 'colorManagement: true; antialias: true');
-  escena.setAttribute('background', 'color: #0b0b0d');
+  escena.setAttribute('background', 'color: #070a14');
 
   registrarCaminar(window.AFRAME);
+  registrarSuperficieVisual(window.AFRAME);
 
   // rig: lo que se mueve. La cámara va adentro, a la altura de los ojos.
   rig = document.createElement('a-entity');
@@ -188,16 +232,21 @@ export async function montar(contenedor) {
 
   const suelo = document.createElement('a-entity');
   suelo.setAttribute('geometry', 'primitive: plane; width: 24; height: 24');
-  suelo.setAttribute('material', 'color: #14141a; side: double');
+  suelo.setAttribute('material', 'color: #0f1730; side: double');
   suelo.setAttribute('rotation', '-90 0 0');
   suelo.setAttribute('position', '0 0 0');
   escena.append(suelo);
 
+  registrarGirar(window.AFRAME);
   anillo = document.createElement('a-entity');
   anillo.setAttribute('position', '0 1.6 0');
+  anillo.setAttribute('girar', 'velocidad', estado.giro);
   escena.append(anillo);
 
   contenedor.append(escena);
+  if (!escena.hasLoaded) {
+    await new Promise(res => escena.addEventListener('loaded', res, { once: true }));
+  }
   reconstruir();
   return escena;
 }
@@ -205,49 +254,77 @@ export async function montar(contenedor) {
 /** Rehace el anillo de piezas. Cada pieza lleva la textura del banco si la hay. */
 function reconstruir() {
   if (!anillo) return;
-  anillo.innerHTML = '';
   const n = Math.round(estado.capas);
+  const piezas = [...anillo.children].filter(pieza => pieza.classList.contains('pieza'));
+
+  while (piezas.length < n) {
+    const pieza = document.createElement('a-entity');
+    pieza.classList.add('pieza');
+    pieza.setAttribute('geometry', 'primitive: plane; width: 1; height: 1');
+    pieza.setAttribute('look-at', '[camera]');
+    anillo.append(pieza);
+    piezas.push(pieza);
+  }
+  while (piezas.length > n) piezas.pop().remove();
+
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
-    const pieza = document.createElement('a-entity');
-    pieza.classList.add('pieza');   // A-Frame convierte los atributos en objetos: la clase es la forma fiable de ubicarlas
-    pieza.setAttribute('geometry', 'primitive: plane; width: 1; height: 1');
+    const pieza = piezas[i];
     pieza.setAttribute('position', {
       x: Math.sin(a) * estado.distancia,
       y: Math.sin(i * 1.7) * 0.35,
       z: -Math.cos(a) * estado.distancia
     });
     pieza.setAttribute('scale', `${estado.escala} ${estado.escala} ${estado.escala}`);
-    pieza.setAttribute('look-at', '[camera]');
     aplicarMaterial(pieza, i, n);
-    anillo.append(pieza);
   }
-  girar();
 }
 
 function aplicarMaterial(pieza, i, n) {
-  if (texturaActual) {
+  if (salidaVisual) {
+    pieza.setAttribute('material', 'shader: flat; color: #ffffff; side: double');
+    pieza.setAttribute('superficie-visual', '');
+  } else if (texturaActual) {
+    pieza.removeAttribute('superficie-visual');
     pieza.setAttribute('material', {
       shader: 'flat', src: texturaActual, side: 'double', transparent: true
     });
   } else {
+    pieza.removeAttribute('superficie-visual');
     // sin nada del banco: placas de color, y se nota que están vacías
     const tono = 45 + (i / n) * 140;
     pieza.setAttribute('material', `shader: flat; color: hsl(${tono}, 35%, 45%); side: double; opacity: 0.75`);
   }
 }
 
+/** Usa la salida animada del bloque VIDEO como superficie de todas las piezas. */
+export function usarSalidaVisual(canvas) {
+  salidaVisual = canvas || null;
+  reconstruir();
+}
+
+/**
+ * El anillo gira solo. Se hace con un componente propio y no con la animación
+ * de A-Frame porque aquella, en bucle y sin `from`, toma la rotación actual al
+ * arrancar: después de la primera vuelta queda en 360 y anima de 360 a 360, o
+ * sea que se detiene. Un tick que suma grados por segundo no tiene ese
+ * problema y además responde al cambio de velocidad sin reiniciar la vuelta.
+ */
+function registrarGirar(AFRAME) {
+  if (AFRAME.components.girar) return;
+  AFRAME.registerComponent('girar', {
+    schema: { velocidad: { default: 18 } },
+    tick(tiempo, delta) {
+      if (!this.data.velocidad) return;
+      const dt = Math.min(100, delta || 16) / 1000;
+      this.el.object3D.rotation.y += this.data.velocidad * dt * Math.PI / 180;
+    }
+  });
+}
+
 function girar() {
   if (!anillo) return;
-  anillo.removeAttribute('animation__giro');
-  if (estado.giro <= 0) { anillo.setAttribute('rotation', '0 0 0'); return; }
-  anillo.setAttribute('animation__giro', {
-    property: 'rotation',
-    to: '0 360 0',
-    loop: true,
-    easing: 'linear',
-    dur: Math.max(400, (360 / estado.giro) * 1000)
-  });
+  anillo.setAttribute('girar', 'velocidad', estado.giro);
 }
 
 // ── parámetros ───────────────────────────────────────────────────────────────
@@ -294,7 +371,7 @@ export async function traer(palabra, letra, n) {
 
   texturaActual = img;
   reconstruir();
-  return { id: r.id, ancho: img.naturalWidth, alto: img.naturalHeight };
+  return { id: r.id, ancho: img.naturalWidth, alto: img.naturalHeight, imagen: img };
 }
 
 export function vaciar() { texturaActual = null; reconstruir(); }

@@ -11,6 +11,17 @@ const $ = s => document.querySelector(s);
 const crear = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 
 let piezas = [];   // [{ letra, nombre, archivo, url }]
+let visualMonitor = null;
+
+function compilarVisuales(fuente) {
+  visualMonitor?.compilar(fuente);
+  visual.compilar(fuente);
+}
+
+function ponerEnVisuales(señal) {
+  visual.poner(señal);
+  visualMonitor?.poner(señal);
+}
 
 // ── llaves ───────────────────────────────────────────────────────────────────
 
@@ -156,6 +167,7 @@ async function depositar() {
 // que en vivo es lo que uno quiere.
 
 const SLOTS = 'yaqxxa.slots';
+const SLOT_SHADER_V1 = 'yaqxxa.slot-shader-v3';
 
 const SLOT_INICIAL = `# yaqxxa · ⌃⏎ evalúa la línea · ⌃⇧⏎ los slots activos · ⌃. silencio
 # ~palabra.f(0) invoca del banco · densidad(0.5) mueve los motores
@@ -169,6 +181,9 @@ cola(0.4)
 
 let slots = [];
 let slotActual = 0;
+let shaderActual = visual.SHADER_INICIAL;
+
+const esCodigoShader = fuente => /\bvoid\s+main\s*\(\s*\)/.test(fuente) && /gl_FragColor/.test(fuente);
 
 function cargarSlots() {
   const guardado = (() => { try { return JSON.parse(localStorage.getItem(SLOTS)); } catch { return null; } })();
@@ -179,7 +194,20 @@ function cargarSlots() {
     slots = [{ texto: $('#editor').value || SLOT_INICIAL, activo: true }];
     slotActual = 0;
   }
+
+  // La primera vez que llega esta versión, el shader pasa a ser el slot 2.
+  // Si ya había código ahí, se conserva como slot 3.
+  if (!localStorage.getItem(SLOT_SHADER_V1)) {
+    const anterior = slots[1];
+    slots[1] = { texto: visual.SHADER_INICIAL, activo: true };
+    if (anterior?.texto?.trim() && !esCodigoShader(anterior.texto)) slots.splice(2, 0, anterior);
+    try { localStorage.setItem(SLOT_SHADER_V1, '1'); } catch {}
+  }
+  const slotShader = slots.find(s => esCodigoShader(s.texto));
+  if (slotShader) shaderActual = slotShader.texto;
   $('#editor').value = slots[slotActual].texto;
+  try { compilarVisuales(shaderActual); } catch (e) { anotar(String(e.message || e), 'mal'); }
+  guardarSlots();
   pintarSlots();
 }
 
@@ -295,7 +323,10 @@ function aplicarSeñal(nLinea, palabra, brutos, alaVista = true, donde = null) {
 
   if (alaVista) destello(nLinea);
   if (alAudio) { sinte.poner(s); sinte.iniciar().then(refrescarAudio).catch(e => anotar(e.message, 'mal')); }
-  if (alVideo) visual.poner(s);
+  if (alVideo) {
+    ponerEnVisuales(s);
+    puente.emitir('senal-video', s);
+  }
   anotar(`${palabra} → ${alAudio ? 'audio' : ''}${alAudio && alVideo ? ' + ' : ''}${alVideo ? 'video' : ''}`);
 }
 
@@ -325,6 +356,19 @@ function anotar(texto, clase) {
   const caja = $('#estado-editor');
   caja.prepend(crear('div', clase || null, texto));
   while (caja.children.length > 4) caja.lastChild.remove();
+}
+
+function evaluarShader(fuente, numSlot = slotActual, alaVista = true) {
+  try {
+    compilarVisuales(fuente);
+    shaderActual = fuente;
+    puente.emitir('shader', { fuente });
+    if (alaVista) destello(lineaDelCursor($('#editor')));
+    anotar(`slot ${numSlot + 1} · shader compilado → VIDEO → MONITOR`);
+  } catch (e) {
+    if (alaVista) destello(lineaDelCursor($('#editor')), 'mal');
+    anotar(`slot ${numSlot + 1} · ${String(e.message || e).trim()}`, 'mal');
+  }
 }
 
 async function evaluarLinea(nLinea, textoSlot = null, numSlot = null) {
@@ -379,7 +423,8 @@ async function evaluarLinea(nLinea, textoSlot = null, numSlot = null) {
     mostrarEnEscenario(letra, r);
     anotar(`~${palabra}.${letra}(${num}) en escena · ${r.id}`);
     if (letra === 'f' && tablero.conectado('bloque-codigo', 'bloque-monitor')) {
-      puente.emitir('textura', { palabra, letra, n: Number(num), id: r.id });
+      texturaMundoActual = { palabra, letra, n: Number(num), id: r.id };
+      puente.emitir('textura', texturaMundoActual);
       if (mundoListo) {
         mundo.traer(palabra, letra, Number(num))
           .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
@@ -392,6 +437,9 @@ async function evaluarLinea(nLinea, textoSlot = null, numSlot = null) {
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         visual.textura(img);
+        visualMonitor?.textura(img);
+        texturaVideoActual = { palabra, letra, n: Number(num), id: r.id };
+        puente.emitir('textura-video', texturaVideoActual);
         anotar(`~${palabra}.f(${num}) → textura del video, por el cable`);
       };
       img.src = r.url;
@@ -419,6 +467,8 @@ function silencio() {
   sinte.detener();
   refrescarAudio();
   visual.vaciarTextura();
+  visualMonitor?.vaciarTextura();
+  texturaVideoActual = null;
   puente.emitir('vaciar', null);
   $('#escenario').innerHTML = '';
   anotar('silencio');
@@ -431,6 +481,10 @@ function evaluarTodo() {
   if (!activos.length) { anotar('todos los slots están apagados', 'mal'); return; }
 
   for (const [s, i] of activos) {
+    if (esCodigoShader(s.texto)) {
+      evaluarShader(s.texto, i, i === slotActual);
+      continue;
+    }
     const lineas = s.texto.split('\n');
     if (i === slotActual) {
       lineas.forEach((_, n) => evaluarLinea(n));
@@ -524,6 +578,7 @@ $('#editor').addEventListener('keydown', e => {
   if (ctrl && e.key === 'Enter') {
     e.preventDefault();
     if (e.shiftKey) evaluarTodo();
+    else if (esCodigoShader($('#editor').value)) evaluarShader($('#editor').value);
     else evaluarLinea(lineaDelCursor($('#editor')));
   } else if (ctrl && e.key === '.') {
     e.preventDefault();
@@ -535,6 +590,8 @@ $('#editor').addEventListener('keydown', e => {
 // ── bloque mundo ─────────────────────────────────────────────────────────────
 
 let mundoListo = false;
+let texturaMundoActual = null;
+let texturaVideoActual = null;
 
 async function abrirMundo() {
   if (mundoListo) return;
@@ -655,6 +712,12 @@ async function traerAlMundo() {
   est.textContent = 'trayendo…';
   try {
     const r = await mundo.traer(m[1], m[2], m[3]);
+    texturaMundoActual = { palabra: m[1], letra: m[2], n: Number(m[3]), id: r.id };
+    texturaVideoActual = texturaMundoActual;
+    visual.textura(r.imagen);
+    visualMonitor?.textura(r.imagen);
+    puente.emitir('textura', texturaMundoActual);
+    puente.emitir('textura-video', texturaVideoActual);
     est.textContent = `${r.id} · ${r.ancho}×${r.alto}`;
   } catch (e) { est.textContent = String(e.message || e); }
 }
@@ -685,6 +748,15 @@ puente.escuchar('pedir', () => {
   for (const [nombre, valor] of Object.entries(mundo.leer())) {
     puente.emitir('parametro', { nombre, valor });
   }
+  if (texturaMundoActual) puente.emitir('textura', texturaMundoActual);
+  else puente.emitir('vaciar', null);
+  puente.emitir('shader', { fuente: shaderActual });
+  puente.emitir('senal-video', visual.leerSeñal());
+  puente.emitir('encaje-video', { modo: visual.leerEncaje() });
+  puente.emitir('salida-video', {
+    activa: tablero.conectado('bloque-video', 'bloque-monitor')
+  });
+  if (texturaVideoActual) puente.emitir('textura-video', texturaVideoActual);
 });
 
 puente.escuchar('adios', ({ desde }) => {
@@ -696,7 +768,15 @@ window.addEventListener('beforeunload', () => puente.emitir('adios', { desde: 'i
 const detMonitor = document.querySelector('#bloque-monitor');
 detMonitor.addEventListener('toggle', () => { if (detMonitor.open) abrirMundo(); });
 $('#traer').addEventListener('click', traerAlMundo);
-$('#vaciar').addEventListener('click', () => { mundo.vaciar(); $('#mundo-estado').textContent = ''; });
+$('#vaciar').addEventListener('click', () => {
+  texturaMundoActual = null;
+  texturaVideoActual = null;
+  mundo.vaciar();
+  visual.vaciarTextura();
+  visualMonitor?.vaciarTextura();
+  puente.emitir('vaciar', null);
+  $('#mundo-estado').textContent = '';
+});
 $('#entrar-vr').addEventListener('click', () => {
   try { mundo.entrarVR(); } catch (e) { $('#vr-nota').textContent = String(e.message); }
 });
@@ -766,14 +846,22 @@ recordarPliegues();
 // La semántica de los cables se define acá:
 //   PARÁMETROS → MONITOR   los controles mueven el mundo (conectado por defecto)
 //   CÓDIGO → MONITOR       las fotos invocadas entran como textura del espacio
+//   VIDEO → MONITOR        la salida del shader cubre las superficies del mundo
 // Cualquier otro cable se guarda pero no hace nada, y el sistema lo dice.
 
 const CABLES_CON_SEMANTICA = new Set([
   'bloque-parametros→bloque-monitor',
   'bloque-codigo→bloque-monitor',
   'bloque-codigo→bloque-audio',
-  'bloque-codigo→bloque-video'
+  'bloque-codigo→bloque-video',
+  'bloque-video→bloque-monitor'
 ]);
+
+function sincronizarSalidaVisual() {
+  const activa = tablero.conectado('bloque-video', 'bloque-monitor');
+  mundo.usarSalidaVisual(activa ? visualMonitor?.salida() : null);
+  puente.emitir('salida-video', { activa });
+}
 
 // Quien tiene el foco escucha: el mundo solo camina cuando el MONITOR está
 // enfocado, así escribir "w" en el CÓDIGO nunca mueve la cámara.
@@ -794,11 +882,13 @@ tablero.montarTablero({
   cablesIniciales: [
     { de: 'bloque-parametros', a: 'bloque-monitor' },
     { de: 'bloque-codigo', a: 'bloque-audio' },
-    { de: 'bloque-codigo', a: 'bloque-video' }
+    { de: 'bloque-codigo', a: 'bloque-video' },
+    { de: 'bloque-video', a: 'bloque-monitor' }
   ],
   alCambioDeCable: (de, a) => {
     // un cable entre parámetros siempre hace algo: el valor de uno abre el otro
     if (de.includes(':') && a.includes(':')) return;
+    if (de === 'bloque-video' && a === 'bloque-monitor') sincronizarSalidaVisual();
     if (!CABLES_CON_SEMANTICA.has(de + '→' + a)) {
       anotar('ese cable todavía no hace nada — queda guardado igual', 'mal');
     }
@@ -814,12 +904,29 @@ pintarParametros();
 // El sinte emite eventos; el visual los dibuja. No se conocen: comparten la
 // señal y el bus, que es la tesis de los prototipos hecha bloques.
 
-sinte.escucharEventos(ev => visual.evento(ev));
+sinte.escucharEventos(ev => {
+  visual.evento(ev);
+  visualMonitor?.evento(ev);
+  puente.emitir('evento-video', ev);
+});
 visual.montar($('#lienzo-video'));
+const canvasMonitor = document.createElement('canvas');
+canvasMonitor.hidden = true;
+document.body.append(canvasMonitor);
+visualMonitor = visual.crearMotor(canvasMonitor, {
+  autoAjustar: false, ancho: 640, alto: 360
+});
+if (!localStorage.getItem('yaqxxa.video-monitor-v1')) {
+  tablero.asegurarConexion('bloque-video', 'bloque-monitor');
+  try { localStorage.setItem('yaqxxa.video-monitor-v1', '1'); } catch {}
+}
+sincronizarSalidaVisual();
 
 $('#encaje').addEventListener('click', () => {
   const nuevo = visual.leerEncaje() === 'contener' ? 'cubrir' : 'contener';
   visual.ponerEncaje(nuevo);
+  visualMonitor?.ponerEncaje(nuevo);
+  puente.emitir('encaje-video', { modo: nuevo });
   $('#encaje').textContent = nuevo;
 });
 
@@ -850,6 +957,8 @@ setInterval(() => {
   const n = sinte.nivel();
   $('#audio-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
   visual.nivel(n);
+  visualMonitor?.nivel(n);
+  puente.emitir('nivel-video', { nivel: n });
   const fila = $('#audio-salidas .parametro');
   if (fila) {
     fila.querySelector('.barra-nivel').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');

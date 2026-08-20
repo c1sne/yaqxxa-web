@@ -6,16 +6,21 @@
 
 import * as mundo from './mundo.js';
 import * as puente from './puente.js';
+import * as visual from './visualx.js';
 
 const $ = s => document.querySelector(s);
 
 async function inicio() {
+  const canvasVideo = document.createElement('canvas');
+  canvasVideo.hidden = true;
+  document.body.append(canvasVideo);
+  const visualMundo = visual.crearMotor(canvasVideo, {
+    autoAjustar: false, ancho: 640, alto: 360
+  });
+  mundo.usarSalidaVisual(canvasVideo);
+
   await mundo.montar($('#escena'));
   mundo.activarTeclado(true);   // acá el mundo es lo único: el teclado es suyo
-
-  // presentarse y pedir el estado que ya tenga el instrumento
-  puente.emitir('hola', { desde: 'mundo' });
-  puente.emitir('pedir', null);
 
   puente.escuchar('parametro', ({ nombre, valor }) => mundo.poner(nombre, valor));
 
@@ -26,15 +31,44 @@ async function inicio() {
     } catch (e) { avisar(e.message); }
   });
 
-  puente.escuchar('vaciar', () => mundo.vaciar());
+  puente.escuchar('shader', ({ fuente }) => {
+    try { visualMundo.compilar(fuente); }
+    catch (e) { avisar(String(e.message || e)); }
+  });
+  puente.escuchar('senal-video', señal => visualMundo.poner(señal));
+  puente.escuchar('evento-video', evento => visualMundo.evento(evento));
+  puente.escuchar('nivel-video', ({ nivel }) => visualMundo.nivel(nivel));
+  puente.escuchar('encaje-video', ({ modo }) => visualMundo.ponerEncaje(modo));
+  puente.escuchar('salida-video', ({ activa }) => {
+    mundo.usarSalidaVisual(activa ? canvasVideo : null);
+  });
+  puente.escuchar('textura-video', async ({ palabra, letra, n }) => {
+    try {
+      const r = await mundo.traer(palabra, letra, n);
+      visualMundo.textura(r.imagen);
+    } catch (e) { avisar(String(e.message || e)); }
+  });
+
+  puente.escuchar('vaciar', () => {
+    mundo.vaciar();
+    visualMundo.vaciarTextura();
+  });
 
   puente.escuchar('hola', ({ desde }) => {
-    if (desde === 'instrumento') avisar('conectado al instrumento');
+    if (desde === 'instrumento') {
+      avisar('conectado al instrumento');
+      puente.emitir('pedir', null);
+    }
   });
 
   puente.escuchar('adios', ({ desde }) => {
     if (desde === 'instrumento') avisar('el instrumento se cerró — el mundo sigue');
   });
+
+  // Los oyentes deben existir antes de pedir: la respuesta puede llegar de
+  // inmediato y BroadcastChannel no conserva mensajes pasados.
+  puente.emitir('hola', { desde: 'mundo' });
+  puente.emitir('pedir', null);
 
   avisar(puente.disponible() ? 'conectado al instrumento' : 'sin puente: este navegador no tiene BroadcastChannel');
 

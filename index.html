@@ -82,6 +82,32 @@
   </div>
 </section>
 
+<!-- ─────────────── BLOQUE MUNDO ─────────────── -->
+<details class="bloque plegable" id="bloque-mundo">
+  <summary><span class="tit">MUNDO</span><span class="tenue"> · a-frame · desplegar</span></summary>
+  <div class="cuerpo">
+    <p class="tenue nota-carga" id="nota-mundo">A-Frame pesa 1,28 MB y se carga
+    solo al abrir este bloque. Todavía no se descargó nada.</p>
+
+    <div id="escena" class="escena"></div>
+
+    <div class="acciones">
+      <input id="traer-inv" type="text" class="invocacion chico" spellcheck="false"
+             autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
+      <button id="traer" class="btn">traer al mundo</button>
+      <button id="vaciar" class="btn">vaciar</button>
+      <span id="mundo-estado" class="progreso"></span>
+    </div>
+
+    <div id="parametros" class="parametros"></div>
+
+    <div class="acciones">
+      <button id="entrar-vr" class="btn" hidden>entrar en VR</button>
+      <span id="vr-nota" class="tenue" style="font-size:11px"></span>
+    </div>
+  </div>
+</details>
+
 <details class="bloque plegable">
   <summary><span class="tit">CÓMO FUNCIONA</span><span class="tenue"> · desplegar</span></summary>
   <div class="cuerpo doc">
@@ -129,6 +155,21 @@ identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
     redactar.</p>
     <p class="regla">No se agrega una palabra escribiendo documentación.<br>
     Se agrega dándole material.</p>
+
+    <h3>El mundo</h3>
+    <p>El bloque MUNDO corre una escena de <b>A-Frame</b> embebida, y sus
+    controles son parámetros con nombre: <code>giro</code>, <code>capas</code>,
+    <code>escala</code>, <code>distancia</code>. Son exactamente los que el
+    lenguaje va a mover cuando exista.</p>
+    <p>Lo que importa no es que haya 3D: es que el mundo <b>lee del banco</b>.
+    Una foto depositada en archive.org entra como textura de un objeto en el
+    espacio. El depósito y el mundo no son dos sistemas, son el mismo material
+    en dos lugares.</p>
+    <p class="tenue">A-Frame es la primera dependencia del proyecto. Pesa
+    1,28&nbsp;MB, está guardada en <code>vendor/</code> y no en un CDN, y se
+    carga solo cuando abrís el bloque: con el archivo borrado, todo el resto de
+    yaqxxa sigue funcionando. La justificación y el riesgo declarado están en
+    <code>vendor/README.md</code>.</p>
 
     <h3>Advertencias</h3>
     <p>Lo que depositás es <b>público y permanente</b>. Si hay personas en el

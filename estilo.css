@@ -237,3 +237,26 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 .doc dd { text-align: left; }
 .doc .endpoints dt { color: var(--frio); }
 .doc .pie { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--borde); font-size: 11px; }
+
+/* ── bloque mundo ─────────────────────────────────────────────────────────── */
+
+.escena {
+  height: 320px; background: #08080a;
+  border: 1px solid var(--borde); border-radius: 3px;
+  overflow: hidden; position: relative;
+}
+.escena a-scene, .escena canvas { width: 100% !important; height: 100% !important; display: block; }
+.escena:empty::after {
+  content: 'el mundo no está montado'; position: absolute; inset: 0;
+  display: grid; place-items: center; color: var(--tenue); font-size: 11px;
+}
+.nota-carga { font-size: 11px; margin: 0 0 10px; }
+.invocacion.chico { font-size: 12px; flex: 1; }
+
+.parametros { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 12px; }
+.parametro { display: grid; grid-template-columns: 66px 1fr 52px; align-items: center; gap: 8px; font-size: 11px; }
+.parametro span:first-child { color: var(--tenue); }
+.parametro input { width: 100%; }
+.parametro .valor { text-align: right; color: var(--frio); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 620px) { .parametros { grid-template-columns: 1fr; } }

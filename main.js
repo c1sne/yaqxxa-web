@@ -1,6 +1,7 @@
 // main.js — arma los dos bloques y los conecta al banco.
 
 import * as ia from './ia.js';
+import * as mundo from './mundo.js';
 
 const $ = s => document.querySelector(s);
 const crear = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -299,7 +300,72 @@ $('#depositar').addEventListener('click', depositar);
 $('#invocar').addEventListener('click', invocar);
 $('#invocacion').addEventListener('keydown', e => { if (e.key === 'Enter') invocar(); });
 
-const doc = document.querySelector('details.plegable');
+
+// ── bloque mundo ─────────────────────────────────────────────────────────────
+
+let mundoListo = false;
+
+async function abrirMundo() {
+  if (mundoListo) return;
+  const nota = $('#nota-mundo');
+  nota.textContent = 'cargando A-Frame (1,28 MB)…';
+  try {
+    await mundo.montar($('#escena'));
+    mundoListo = true;
+    nota.textContent = 'A-Frame cargado desde vendor/ — sin CDN, sin red de terceros.';
+    pintarParametros();
+    const vr = await mundo.soportaVR();
+    $('#entrar-vr').hidden = !vr;
+    $('#vr-nota').textContent = vr
+      ? ''
+      : navigator.xr
+        ? 'no hay visor conectado — la escena en pantalla funciona igual'
+        : 'este navegador no tiene WebXR (en Quest, Android con Chrome o Vision Pro, sí)';
+  } catch (e) {
+    nota.textContent = String(e.message || e);
+  }
+}
+
+function pintarParametros() {
+  const caja = $('#parametros');
+  caja.innerHTML = '';
+  const actual = mundo.leer();
+  for (const [nombre, spec] of Object.entries(mundo.PARAMETROS)) {
+    const fila = crear('label', 'parametro');
+    const val = crear('span', 'valor', String(actual[nombre]) + spec.unidad);
+    const rango = Object.assign(crear('input'), {
+      type: 'range', min: spec.min, max: spec.max, step: spec.paso, value: actual[nombre]
+    });
+    rango.addEventListener('input', () => {
+      const v = parseFloat(rango.value);
+      val.textContent = v + spec.unidad;
+      mundo.poner(nombre, v);
+    });
+    fila.append(crear('span', null, nombre), rango, val);
+    caja.append(fila);
+  }
+}
+
+async function traerAlMundo() {
+  const m = SINTAXIS.exec($('#traer-inv').value.trim());
+  const est = $('#mundo-estado');
+  if (!m) { est.textContent = 'la forma es ~palabra.f(0)'; return; }
+  est.textContent = 'trayendo…';
+  try {
+    const r = await mundo.traer(m[1], m[2], m[3]);
+    est.textContent = `${r.id} · ${r.ancho}×${r.alto}`;
+  } catch (e) { est.textContent = String(e.message || e); }
+}
+
+const detMundo = document.querySelector('#bloque-mundo');
+detMundo.addEventListener('toggle', () => { if (detMundo.open) abrirMundo(); });
+$('#traer').addEventListener('click', traerAlMundo);
+$('#vaciar').addEventListener('click', () => { mundo.vaciar(); $('#mundo-estado').textContent = ''; });
+$('#entrar-vr').addEventListener('click', () => {
+  try { mundo.entrarVR(); } catch (e) { $('#vr-nota').textContent = String(e.message); }
+});
+
+const doc = document.querySelector('#bloque-mundo ~ details.plegable') || document.querySelectorAll('details.plegable')[1];
 doc.addEventListener('toggle', function una() {
   if (doc.open) { capacidades(); doc.removeEventListener('toggle', una); }
 });

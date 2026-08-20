@@ -186,7 +186,7 @@ function aplicarSeñal(nLinea, palabra, brutos) {
   else s[palabra] = lim(args[0], 0, 1);
 
   destello(nLinea);
-  if (alSinte) { sinte.poner(s); sinte.iniciar(); refrescarSinte(); }
+  if (alSinte) { sinte.poner(s); sinte.iniciar().then(refrescarSinte).catch(e => anotar(e.message, 'mal')); }
   if (alVisual) visual.poner(s);
   anotar(`${palabra} → ${alSinte ? 'sinte' : ''}${alSinte && alVisual ? ' + ' : ''}${alVisual ? 'visual' : ''}`);
 }
@@ -272,6 +272,16 @@ async function evaluarLinea(nLinea) {
         .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
         .catch(() => {});
     }
+    // la foto entra al sintetizador de video como material, si el cable está
+    if (letra === 'f' && tablero.conectado('bloque-invocar', 'bloque-visual')) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        visual.textura(img);
+        anotar(`~${palabra}.f(${num}) → textura del visual, por el cable`);
+      };
+      img.src = r.url;
+    }
   }
 }
 
@@ -294,6 +304,7 @@ function silencio() {
   sonando.clear();
   sinte.detener();
   refrescarSinte();
+  visual.vaciarTextura();
   $('#escenario').innerHTML = '';
   anotar('silencio');
 }
@@ -571,7 +582,9 @@ $('#sinte-onoff').addEventListener('click', async () => {
   refrescarSinte();
 });
 setInterval(() => {
-  $('#sinte-medidor').style.setProperty('--nivel', (sinte.nivel() * 100).toFixed(1) + '%');
+  const n = sinte.nivel();
+  $('#sinte-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
+  visual.nivel(n);
 }, 90);
 
 pintarLlaves();

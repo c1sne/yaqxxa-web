@@ -9,6 +9,7 @@ navegador. Vendorizar cuesta peso en el repositorio y lo resuelve todo eso.
 | archivo | qué es | versión | licencia |
 |---|---|---|---|
 | `aframe.min.js` | A-Frame — escenas 3D y WebXR declarativas, sobre Three.js | 1.7.0 | MIT |
+| `tone.min.js` | Tone.js — instrumentación WebAudio: sintes, transport, efectos | 15.1.22 | MIT |
 
 ## Por qué A-Frame
 
@@ -40,3 +41,21 @@ sistema.
 **Carga diferida:** el archivo pesa 1,28 MB y **no se descarga al abrir la
 página**. Se carga la primera vez que alguien despliega el bloque MUNDO. En una
 laptop modesta o con datos móviles, eso importa.
+
+## Por qué Tone.js
+
+Decisión de Andrés (20 ago 2026): audio con Tone.js, video con shaders propios.
+
+**¿Qué perderíamos si desapareciera?** La instrumentación —sintes, envolventes,
+efectos, transport con swing— pero no el lenguaje: Tone.js es una biblioteca,
+no un lenguaje de live coding. A diferencia de Strudel, no trae mini-notation
+ni un modelo de tiempo que pueda volverse el nuestro sin decidirlo. El bloque
+SINTE conserva su interfaz propia (poner/iniciar/detener/nivel) así que
+reemplazar el motor por otro es cambiar un archivo.
+
+**Carga diferida:** 345 KB que no se descargan al abrir la página; se cargan la
+primera vez que el sinte arranca.
+
+**Riesgo declarado:** Tone.Transport es dueño del reloj mientras corre. Si un
+día el lenguaje de yaqxxa define su propio tiempo, habrá que decidir quién
+manda — está anotado para que no pase en silencio.

@@ -149,6 +149,7 @@ function navegacion() {
   let pan = null;
   tableroEl.addEventListener('pointerdown', e => {
     if (e.target !== tableroEl && e.target !== lienzoEl && e.target !== svg) return;
+    e.preventDefault();   // sin esto el navegador arranca una selección de texto
     pan = { x0: e.clientX, y0: e.clientY, vx: vista.x, vy: vista.y };
     tableroEl.setPointerCapture(e.pointerId);
   });

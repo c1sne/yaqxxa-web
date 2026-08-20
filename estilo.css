@@ -68,7 +68,15 @@ a:hover { color: var(--frio); }
 
 /* ── tablero ────────────────────────────────────────────────────────────── */
 
-.tablero { flex: 1; position: relative; overflow: hidden; }
+.tablero {
+  flex: 1; position: relative; overflow: hidden;
+  /* panear y arrastrar no debe seleccionar texto */
+  user-select: none; -webkit-user-select: none;
+}
+/* lo que sí es texto para seleccionar y editar */
+.tablero #editor, .tablero input, .tablero textarea {
+  user-select: text; -webkit-user-select: text;
+}
 
 .lienzo-t {
   position: absolute; left: 0; top: 0;

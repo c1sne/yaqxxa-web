@@ -267,3 +267,42 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 #bloque-mundo   > summary .tit { color: var(--calido); }
 .plegable > summary { user-select: none; }
 .plegable[open] > .cuerpo { padding-top: 14px; }
+
+/* ── disposición en dos columnas ──────────────────────────────────────────────
+   ARCHIVO va a la derecha, como panel fijo: se deposita mientras se mira el
+   resto. Los demás bloques corren por la izquierda. */
+
+@media (min-width: 900px) {
+  main {
+    max-width: 1240px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 0 18px;
+    align-items: start;
+  }
+  main > .bloque { margin-bottom: 18px; }
+
+  #bloque-archivo {
+    grid-column: 2;
+    grid-row: 1 / span 99;
+    position: sticky;
+    top: 54px;
+    max-height: calc(100vh - 72px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #bloque-archivo > summary { flex: 0 0 auto; }
+  #bloque-archivo > .cuerpo { overflow-y: auto; min-height: 0; }
+
+  #bloque-invocar, #bloque-mundo, #bloque-doc { grid-column: 1; }
+
+  /* con más ancho, la ficha respira en dos columnas de verdad */
+  .campos { grid-template-columns: 1fr; }
+  .campos .ancho { grid-column: 1; }
+}
+
+@media (min-width: 1100px) {
+  .campos { grid-template-columns: 1fr 1fr; }
+  .campos .ancho { grid-column: 1 / -1; }
+}

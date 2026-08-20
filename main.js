@@ -938,7 +938,7 @@ function salidaDelAudio() {
   const fila = crear('div', 'parametro con-puertos');
   fila.append(crear('span', null, 'nivel'), crear('span', 'barra-nivel'), crear('span', 'valor', '0.00'));
   caja.append(fila);
-  fila.append(tablero.crearPuerto('bloque-audio:nivel', 'salida', 'salida del nivel — arrastrá a un parámetro'));
+  fila.append(tablero.crearPuerto('bloque-audio:nivel', 'salida', 'salida del nivel — arrastra a un parámetro'));
 }
 
 function refrescarAudio() {

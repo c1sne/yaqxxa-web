@@ -456,7 +456,7 @@ function puertos(bloque) {
   const cab = bloque.querySelector('summary');
   for (const tipo of ['entrada', 'salida']) {
     cab.append(crearPuerto(bloque.id, tipo, tipo === 'salida'
-      ? 'salida del bloque — arrastrá hasta la entrada de otro'
+      ? 'salida del bloque — arrastra hasta la entrada de otro'
       : 'entrada del bloque'));
   }
 }
@@ -480,7 +480,7 @@ export function crearPuerto(id, tipo, titulo) {
 export function puertosDeParametro(fila, bloqueId, nombre) {
   fila.classList.add('con-puertos');
   fila.prepend(crearPuerto(`${bloqueId}:${nombre}`, 'entrada', `entrada de ${nombre}`));
-  fila.append(crearPuerto(`${bloqueId}:${nombre}`, 'salida', `salida de ${nombre} — arrastrá a otro parámetro`));
+  fila.append(crearPuerto(`${bloqueId}:${nombre}`, 'salida', `salida de ${nombre} — arrastra a otro parámetro`));
   dibujarCables();
 }
 

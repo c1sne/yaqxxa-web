@@ -37,10 +37,15 @@ function pintarLlaves() {
     }
   });
   const ayuda = crear('p', 'tenue');
-  ayuda.innerHTML = 'Para depositar hacen falta tus llaves de archive.org: ' +
-    '<a href="https://archive.org/account/s3.php" target="_blank" rel="noopener">archive.org/account/s3.php</a>. ' +
-    'Se quedan en este navegador y solo se envían a archive.org — yaqxxa no tiene servidor donde guardarlas.';
+  ayuda.innerHTML = 'llaves de <a href="https://archive.org/account/s3.php" target="_blank" ' +
+    'rel="noopener">archive.org/account/s3.php</a> — se quedan en este navegador ' +
+    '(<a href="#" data-abrir-doc>cómo funciona</a>)';
   caja.append(ayuda, acceso, secreto, guardar);
+  ayuda.querySelector('[data-abrir-doc]').onclick = e => {
+    e.preventDefault();
+    const d = document.querySelector('details.plegable');
+    d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 }
 
 // ── piezas ───────────────────────────────────────────────────────────────────
@@ -160,7 +165,14 @@ async function invocar() {
   const [, palabra, letra, num] = m;
   salida.append(crear('p', 'tenue', `resolviendo ~${palabra}.${letra}(${num})…`));
 
-  const r = await ia.resolver(palabra, letra, Number(num));
+  let r;
+  try { r = await ia.resolver(palabra, letra, Number(num)); }
+  catch (e) {
+    if (!vigente()) return;
+    salida.innerHTML = '';
+    salida.append(crear('p', 'error', e.message));
+    return;
+  }
   if (!vigente()) return;
   salida.innerHTML = '';
 
@@ -204,7 +216,9 @@ async function pintarFicha(id, salida, vigente = () => true) {
 }
 
 async function pintarIndice(palabra, salida, vigente = () => true) {
-  const nums = await ia.indice(palabra);
+  let nums;
+  try { nums = await ia.indice(palabra); }
+  catch { return; }
   if (!vigente()) return;
   const caja = crear('div', 'indice');
   caja.append(crear('span', 'tenue', nums.length ? `~${palabra} tiene ${nums.length} depósito(s): ` : `~${palabra} no tiene nada todavía`));
@@ -224,7 +238,7 @@ async function resumenBanco() {
     $('#resumen-banco').textContent = total
       ? `${n} palabra(s) · ${total} depósito(s)`
       : 'el banco está vacío';
-  } catch { $('#resumen-banco').textContent = 'no pude leer el banco'; }
+  } catch (e) { $('#resumen-banco').textContent = e instanceof ia.Saturado ? 'archive.org saturado' : 'no pude leer el banco'; }
 }
 
 // ── capacidades del dispositivo ──────────────────────────────────────────────
@@ -285,7 +299,11 @@ $('#depositar').addEventListener('click', depositar);
 $('#invocar').addEventListener('click', invocar);
 $('#invocacion').addEventListener('keydown', e => { if (e.key === 'Enter') invocar(); });
 
+const doc = document.querySelector('details.plegable');
+doc.addEventListener('toggle', function una() {
+  if (doc.open) { capacidades(); doc.removeEventListener('toggle', una); }
+});
+
 pintarLlaves();
 revisar();
 resumenBanco();
-capacidades();

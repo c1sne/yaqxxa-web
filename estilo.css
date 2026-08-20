@@ -199,3 +199,41 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   .campos, .llaves.sin { grid-template-columns: 1fr; }
   main { padding: 16px 14px 12vh; }
 }
+
+/* ── bloque desplegable ───────────────────────────────────────────────────── */
+
+.plegable { padding: 0; }
+.plegable > summary {
+  list-style: none; cursor: pointer;
+  padding: 7px 12px; background: #111114;
+  border-bottom: 1px solid transparent;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 4px;
+}
+.plegable > summary::-webkit-details-marker { display: none; }
+.plegable > summary .tit { color: var(--tenue); font-weight: 600; }
+.plegable > summary::after { content: '▸'; margin-left: auto; color: var(--tenue); }
+.plegable[open] > summary { border-bottom-color: var(--borde); }
+.plegable[open] > summary::after { content: '▾'; }
+.plegable > summary:hover .tit { color: var(--calido); }
+
+.doc { font-size: 12.5px; line-height: 1.6; }
+.doc h3 {
+  margin: 20px 0 6px; font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--calido); font-weight: 600;
+}
+.doc h3:first-child { margin-top: 0; }
+.doc p { margin: 0 0 8px; max-width: 72ch; }
+.doc pre {
+  margin: 8px 0 10px; padding: 9px 11px; overflow-x: auto;
+  background: #08080a; border: 1px solid var(--borde); border-radius: 3px;
+  font-size: 11.5px; line-height: 1.5; color: var(--frio);
+}
+.doc .regla {
+  border-left: 2px solid var(--calido); padding: 4px 0 4px 11px;
+  color: var(--texto); margin: 10px 0 8px;
+}
+.doc dl { grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12px; text-align: left; }
+.doc dd { text-align: left; }
+.doc .endpoints dt { color: var(--frio); }
+.doc .pie { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--borde); font-size: 11px; }

@@ -65,9 +65,6 @@
 
     <div id="resultado" class="resultado" hidden></div>
 
-    <p class="aviso">Esto sube a <b>tu</b> cuenta de archive.org, es público y es
-    permanente. yaqxxa no guarda tu material ni tus llaves: no tiene servidor
-    donde guardarlos.</p>
   </div>
 </section>
 
@@ -80,28 +77,87 @@
              autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
       <button id="invocar" class="btn">invocar</button>
     </div>
-    <p class="tenue leyenda">
-      <code>~palabra.f(n)</code> foto · <code>.s(n)</code> sonido ·
-      <code>.v(n)</code> video &nbsp;—&nbsp; <code>n</code> es el número de depósito
-    </p>
+    <p class="tenue leyenda"><code>.f</code> foto · <code>.s</code> sonido · <code>.v</code> video · <code>n</code> = número de depósito</p>
     <div id="salida" class="salida"></div>
   </div>
 </section>
 
-<details class="mas">
-  <summary>qué puede este dispositivo</summary>
-  <dl id="capacidades"></dl>
-  <p class="nota" id="veredicto"></p>
-</details>
+<details class="bloque plegable">
+  <summary><span class="tit">CÓMO FUNCIONA</span><span class="tenue"> · desplegar</span></summary>
+  <div class="cuerpo doc">
 
-<footer>
-  <p>El banco es una consulta, no un servidor: todo lo que lleve la etiqueta
-  <code>yaqxxa</code> en archive.org forma parte de él. Cada depósito pertenece
-  a quien lo subió.</p>
-  <p><a href="https://github.com/c1sne/yaqxxa-web">código</a> ·
-     <a href="https://archive.org/search?query=subject%3Ayaqxxa">ver el banco</a> ·
-     sin dependencias · sin analítica · sin cookies</p>
-</footer>
+    <h3>Las llaves</h3>
+    <p>Para depositar hacen falta tus llaves S3 de
+    <a href="https://archive.org/account/s3.php" target="_blank" rel="noopener">archive.org/account/s3.php</a>.
+    Se quedan en <code>localStorage</code> de este navegador y solo se envían a
+    archive.org: yaqxxa <b>no tiene servidor</b> donde guardarlas aunque quisiera.</p>
+    <p class="tenue">Son llaves de cuenta completa. Por eso esta página no tiene
+    ni una dependencia de terceros: no hay ningún script ajeno que pueda leerlas.
+    Se rotan desde tu cuenta cuando quieras.</p>
+
+    <h3>Cómo se nombra</h3>
+    <p>Un <b>depósito</b> es un ítem de archive.org y tiene un número. Adentro
+    puede traer foto, sonido y video: los tres comparten ese número.</p>
+    <pre>yaqxxa-alarako-0
+├── foto.jpg     →  ~alarako.f(0)
+├── sonido.wav   →  ~alarako.s(0)
+├── video.mp4    →  ~alarako.v(0)
+└── ficha.json      la procedencia, como archivo</pre>
+    <p>El número <b>no vive en ninguna base de datos</b>: va en el identificador.
+    Como los identificadores de archive.org son únicos en el mundo, si
+    <code>yaqxxa-alarako-0</code> ya existe la creación falla y se prueba con el
+    1. Eso convierte la unicidad de nombres en un contador atómico: dos personas
+    subiendo a la vez desde ciudades distintas no pueden pisarse, sin servidor y
+    sin coordinación.</p>
+    <p>El número es estable para siempre. Si alguien borra el 0, no se renumera
+    nada: queda un hueco, y el instrumento lo dice en vez de disimularlo.</p>
+
+    <h3>El banco no es un servidor</h3>
+    <p>Es <b>una consulta</b>: todo lo que lleve la etiqueta <code>yaqxxa</code>
+    en archive.org forma parte de él.</p>
+    <pre>subject:"yaqxxa"              todo el banco
+identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
+    <p>Nadie lo aloja, nadie lo administra, nadie es su dueño. Cada depósito
+    pertenece a quien lo subió, bajo su cuenta. Si yaqxxa desaparece, el banco
+    sigue existiendo. Otra comunidad cambia la etiqueta y tiene el suyo.</p>
+
+    <h3>Una palabra es lo que la gente le deposita</h3>
+    <p><code>alarako</code> no significa algo porque alguien le escribió una
+    etimología. Significa lo que la gente puso bajo esa palabra:
+    <code>~alarako.f(0)</code> es la foto de alguien, <code>~alarako.f(7)</code>
+    la de otra persona, y entre las dos hay una diferencia que nadie tuvo que
+    redactar.</p>
+    <p class="regla">No se agrega una palabra escribiendo documentación.<br>
+    Se agrega dándole material.</p>
+
+    <h3>Advertencias</h3>
+    <p>Lo que depositás es <b>público y permanente</b>. Si hay personas en el
+    material, tiene que haber consentimiento.</p>
+
+    <h3>Qué puede este dispositivo</h3>
+    <dl id="capacidades"></dl>
+    <p class="tenue" id="veredicto"></p>
+
+    <h3>Por dentro</h3>
+    <dl class="endpoints">
+      <dt><code>archive.org/metadata/</code></dt><dd>leer la ficha de un depósito</dd>
+      <dt><code>archive.org/cors/</code></dt><dd>leer los <b>bytes</b> — el único que da CORS</dd>
+      <dt><code>advancedsearch.php</code></dt><dd>el índice, que es una búsqueda</dd>
+      <dt><code>s3.us.archive.org</code></dt><dd>depositar, con PUT desde el navegador</dd>
+    </dl>
+    <p class="tenue"><code>/download/</code> y <code>/serve/</code> no dan CORS.
+    Sin <code>/cors/</code> no se pueden leer píxeles ni decodificar audio, y el
+    banco sería una vitrina en vez de un instrumento.</p>
+
+    <p class="tenue pie">
+      <a href="https://github.com/c1sne/yaqxxa-web">código</a> ·
+      <a href="https://archive.org/search?query=subject%3Ayaqxxa">ver el banco</a> ·
+      sin dependencias · sin analítica · sin cookies ·
+      Escuela de Sensibilización Tecnológica Latinoamericana, Lima 2026
+    </p>
+
+  </div>
+</details>
 
 </main>
 

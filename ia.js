@@ -17,6 +17,26 @@ const CORS   = 'https://archive.org/cors/';
 const BUSCAR = 'https://archive.org/advancedsearch.php';
 const S3     = 'https://s3.us.archive.org/';
 
+// archive.org limita la tasa de consultas y responde 403 o 429 cuando le pegás
+// seguido. En una performance eso no puede verse como "error": se reintenta una
+// vez y, si insiste, se dice lo que realmente pasó.
+export class Saturado extends Error {
+  constructor() { super('archive.org está limitando las consultas — esperá unos segundos'); }
+}
+
+const dormir = ms => new Promise(r => setTimeout(r, ms));
+
+async function pedir(url, reintento = true) {
+  const r = await fetch(url);
+  if (r.status === 429 || r.status === 403) {
+    if (!reintento) throw new Saturado();
+    await dormir(Number(r.headers.get('retry-after')) * 1000 || 1500);
+    return pedir(url, false);
+  }
+  if (!r.ok) throw new Error(`archive.org respondió ${r.status}`);
+  return r;
+}
+
 export const ETIQUETA = 'yaqxxa';   // lo que delimita el banco
 export const PREFIJO  = 'yaqxxa-';  // lo que delimita el espacio de nombres
 
@@ -42,7 +62,7 @@ export const urlPagina = id => 'https://archive.org/details/' + id;
 // ── lectura ──────────────────────────────────────────────────────────────────
 
 export async function ficha(id) {
-  const r = await fetch(META + id);
+  const r = await pedir(META + id);
   const j = await r.json();
   return Object.keys(j).length ? j : null;   // {} = no existe. Es un hueco.
 }
@@ -75,7 +95,7 @@ export async function resolver(palabra, letra, n) {
 export async function indice(palabra) {
   const q = `identifier:${PREFIJO}${slug(palabra)}-*`;
   const u = `${BUSCAR}?q=${encodeURIComponent(q)}&fl%5B%5D=identifier&rows=500&output=json`;
-  const j = await (await fetch(u)).json();
+  const j = await (await pedir(u)).json();
   return (j.response?.docs || [])
     .map(d => Number(d.identifier.slice((PREFIJO + slug(palabra) + '-').length)))
     .filter(n => Number.isInteger(n))
@@ -86,7 +106,7 @@ export async function indice(palabra) {
 export async function palabras() {
   const u = `${BUSCAR}?q=${encodeURIComponent('subject:"' + ETIQUETA + '"')}` +
             `&fl%5B%5D=identifier&rows=500&output=json`;
-  const j = await (await fetch(u)).json();
+  const j = await (await pedir(u)).json();
   const cuenta = {};
   for (const d of j.response?.docs || []) {
     const m = d.identifier.match(new RegExp('^' + PREFIJO + '(.+)-(\\d+)$'));

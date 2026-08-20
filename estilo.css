@@ -441,3 +441,35 @@ body.hay-expandido .riel { z-index: 61; }
 .bloque.con-foco { border-color: var(--frio); }
 .bloque.con-foco > summary { background: #16161c; }
 .bloque.con-foco > summary .tit { color: var(--frio); }
+
+/* ── slots del bloque CÓDIGO ──────────────────────────────────────────────────
+   Referencia: KodeLife. Cada slot es un texto independiente; la casilla decide
+   si participa cuando se evalúa todo. */
+
+.slots {
+  display: flex; align-items: stretch; gap: 1px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+.slot {
+  display: flex; align-items: center; gap: 5px;
+  background: #16161c; border: 1px solid var(--borde); border-radius: 3px;
+  padding: 2px 4px 2px 6px; font: inherit; font-size: 11px; color: var(--tenue);
+  cursor: pointer;
+}
+.slot:hover { color: var(--texto); }
+.slot.actual { border-color: var(--calido); color: var(--calido); background: #1a1a12; }
+.slot .casilla-slot {
+  width: 12px; height: 12px; display: grid; place-items: center;
+  border: 1px solid var(--borde); border-radius: 2px;
+  font-size: 9px; line-height: 1; color: var(--frio); background: #08080a;
+}
+.slot.apagado { opacity: .5; }
+.slot.apagado .casilla-slot { color: transparent; }
+.slot .cerrar-slot { color: var(--tenue); padding: 0 2px; }
+.slot .cerrar-slot:hover { color: var(--alerta); }
+.slot-mas {
+  background: none; border: 1px dashed var(--borde); border-radius: 3px;
+  color: var(--tenue); font: inherit; font-size: 12px; cursor: pointer;
+  padding: 2px 9px;
+}
+.slot-mas:hover { border-color: var(--calido); color: var(--calido); }

@@ -147,6 +147,112 @@ async function depositar() {
   }
 }
 
+// ── slots del editor ─────────────────────────────────────────────────────────
+//
+// Referencia: KodeLife. El bloque CÓDIGO tiene varios textos independientes,
+// numerados desde 1, con un + para agregar. La casilla de cada slot decide si
+// participa cuando se evalúa todo: apagar un slot es callarlo sin borrarlo,
+// que en vivo es lo que uno quiere.
+
+const SLOTS = 'yaqxxa.slots';
+
+const SLOT_INICIAL = `# yaqxxa · ⌃⏎ evalúa la línea · ⌃⇧⏎ los slots activos · ⌃. silencio
+# ~palabra.f(0) invoca del banco · densidad(0.5) mueve los motores
+
+densidad(0.55)
+pulso(96, 0.3)
+capas(3)
+cola(0.4)
+
+~alarako.f(0)`;
+
+let slots = [];
+let slotActual = 0;
+
+function cargarSlots() {
+  const guardado = (() => { try { return JSON.parse(localStorage.getItem(SLOTS)); } catch { return null; } })();
+  if (guardado && Array.isArray(guardado.slots) && guardado.slots.length) {
+    slots = guardado.slots;
+    slotActual = Math.min(guardado.actual ?? 0, slots.length - 1);
+  } else {
+    slots = [{ texto: $('#editor').value || SLOT_INICIAL, activo: true }];
+    slotActual = 0;
+  }
+  $('#editor').value = slots[slotActual].texto;
+  pintarSlots();
+}
+
+const guardarSlots = () => {
+  slots[slotActual].texto = $('#editor').value;
+  try { localStorage.setItem(SLOTS, JSON.stringify({ slots, actual: slotActual })); } catch {}
+};
+
+function irASlot(i) {
+  if (i === slotActual || !slots[i]) return;
+  slots[slotActual].texto = $('#editor').value;
+  slotActual = i;
+  $('#editor').value = slots[i].texto;
+  guardarSlots();
+  pintarSlots();
+}
+
+function agregarSlot() {
+  slots[slotActual].texto = $('#editor').value;
+  slots.push({ texto: '', activo: true });
+  slotActual = slots.length - 1;
+  $('#editor').value = '';
+  guardarSlots();
+  pintarSlots();
+  $('#editor').focus();
+  anotar(`slot ${slots.length} agregado`);
+}
+
+function cerrarSlot(i) {
+  if (slots.length === 1) { anotar('el último slot no se cierra', 'mal'); return; }
+  slots.splice(i, 1);
+  if (slotActual >= slots.length) slotActual = slots.length - 1;
+  else if (i < slotActual) slotActual--;
+  $('#editor').value = slots[slotActual].texto;
+  guardarSlots();
+  pintarSlots();
+}
+
+function alternarSlot(i) {
+  slots[i].activo = !slots[i].activo;
+  guardarSlots();
+  pintarSlots();
+  anotar(`slot ${i + 1} ${slots[i].activo ? 'activo' : 'apagado'}`);
+}
+
+function pintarSlots() {
+  const barra = $('#slots');
+  barra.innerHTML = '';
+  slots.forEach((s, i) => {
+    const el = crear('div', 'slot' + (i === slotActual ? ' actual' : '') + (s.activo ? '' : ' apagado'));
+    el.title = s.activo ? 'activo — participa al evaluar todo' : 'apagado — se saltea al evaluar todo';
+
+    const casilla = crear('span', 'casilla-slot', '✓');
+    casilla.addEventListener('click', e => { e.stopPropagation(); alternarSlot(i); });
+
+    const nombre = crear('span', null, String(i + 1));
+    el.append(casilla, nombre);
+
+    if (slots.length > 1) {
+      const x = crear('span', 'cerrar-slot', '×');
+      x.title = 'cerrar slot';
+      x.addEventListener('click', e => { e.stopPropagation(); cerrarSlot(i); });
+      el.append(x);
+    }
+    el.addEventListener('click', () => irASlot(i));
+    barra.append(el);
+  });
+
+  const mas = crear('button', 'slot-mas', '+');
+  mas.title = 'agregar slot';
+  mas.addEventListener('click', agregarSlot);
+  barra.append(mas);
+}
+
 // ── el editor: acá corre el lenguaje ─────────────────────────────────────────
 //
 // Referencia asumida: flok. Un cuadro negro donde se escribe; ⌃⏎ evalúa la
@@ -164,17 +270,18 @@ const SEÑAL = /^(densidad|peso|pulso|azar|capas|cola)\s*\(\s*([\d.,\s]*)\s*\)$/
 
 const lim = (v, a, b) => Math.min(b, Math.max(a, v));
 
-function aplicarSeñal(nLinea, palabra, brutos) {
+function aplicarSeñal(nLinea, palabra, brutos, alaVista = true, donde = null) {
+  donde = donde ?? `línea ${nLinea + 1}`;
   const args = brutos.split(',').map(x => parseFloat(x)).filter(x => !Number.isNaN(x));
   if (!args.length) {
-    destello(nLinea, 'mal');
-    anotar(`línea ${nLinea + 1} · ${palabra}() necesita un número`, 'mal');
+    if (alaVista) destello(nLinea, 'mal');
+    anotar(`${donde} · ${palabra}() necesita un número`, 'mal');
     return;
   }
   const alAudio = tablero.conectado('bloque-codigo', 'bloque-audio');
   const alVideo = tablero.conectado('bloque-codigo', 'bloque-video');
   if (!alAudio && !alVideo) {
-    destello(nLinea, 'mal');
+    if (alaVista) destello(nLinea, 'mal');
     anotar(`${palabra}() no llega a ningún motor — conectá CÓDIGO al AUDIO o al VIDEO`, 'mal');
     return;
   }
@@ -185,7 +292,7 @@ function aplicarSeñal(nLinea, palabra, brutos) {
   else if (palabra === 'cola') s.cola = lim(args[0], 0, 0.95);
   else s[palabra] = lim(args[0], 0, 1);
 
-  destello(nLinea);
+  if (alaVista) destello(nLinea);
   if (alAudio) { sinte.poner(s); sinte.iniciar().then(refrescarAudio).catch(e => anotar(e.message, 'mal')); }
   if (alVideo) visual.poner(s);
   anotar(`${palabra} → ${alAudio ? 'audio' : ''}${alAudio && alVideo ? ' + ' : ''}${alVideo ? 'video' : ''}`);
@@ -219,33 +326,36 @@ function anotar(texto, clase) {
   while (caja.children.length > 4) caja.lastChild.remove();
 }
 
-async function evaluarLinea(nLinea) {
-  const cruda = ($('#editor').value.split('\n')[nLinea] || '');
+async function evaluarLinea(nLinea, textoSlot = null, numSlot = null) {
+  const fuente = textoSlot ?? $('#editor').value;
+  const alaVista = textoSlot === null;
+  const cruda = (fuente.split('\n')[nLinea] || '');
   const texto = cruda.split('#')[0].trim();
   if (!texto) return;   // vacía o comentario
+  const donde = alaVista ? `línea ${nLinea + 1}` : `slot ${numSlot + 1}:${nLinea + 1}`;
 
   // ¿es una palabra de señal? densidad(0.5), pulso(96, 0.3)…
   const ms = SEÑAL.exec(texto);
   if (ms) {
-    aplicarSeñal(nLinea, ms[1], ms[2]);
+    aplicarSeñal(nLinea, ms[1], ms[2], alaVista, donde);
     return;
   }
 
   const m = SINTAXIS.exec(texto);
   if (!m) {
-    destello(nLinea, 'mal');
-    anotar(`línea ${nLinea + 1} · no entiendo «${texto}» — la forma es ~palabra.f(0) o densidad(0.5)`, 'mal');
+    if (alaVista) destello(nLinea, 'mal');
+    anotar(`${donde} · no entiendo «${texto}» — la forma es ~palabra.f(0) o densidad(0.5)`, 'mal');
     return;
   }
   const [, palabra, letra, num] = m;
-  destello(nLinea);
+  if (alaVista) destello(nLinea);
 
   let r;
   try { r = await resolverConCache(palabra, letra, Number(num)); }
-  catch (e) { anotar(`línea ${nLinea + 1} · ${e.message}`, 'mal'); return; }
+  catch (e) { anotar(`${donde} · ${e.message}`, 'mal'); return; }
 
   if (r.error) {
-    destello(nLinea, 'mal');
+    if (alaVista) destello(nLinea, 'mal');
     let extra = '';
     try {
       const nums = await ia.indice(palabra);
@@ -253,7 +363,7 @@ async function evaluarLinea(nLinea) {
         ? ` — ~${palabra} tiene: ${nums.join(', ')}`
         : ` — ~${palabra} no tiene depósitos todavía`;
     } catch {}
-    anotar(`línea ${nLinea + 1} · ${r.error}${extra}`, 'mal');
+    anotar(`${donde} · ${r.error}${extra}`, 'mal');
     return;
   }
 
@@ -262,7 +372,7 @@ async function evaluarLinea(nLinea) {
     a.crossOrigin = 'anonymous';
     sonando.add(a);
     a.addEventListener('ended', () => sonando.delete(a));
-    a.play().catch(e => anotar(`línea ${nLinea + 1} · el audio no arrancó: ${e.message}`, 'mal'));
+    a.play().catch(e => anotar(`${donde} · el audio no arrancó: ${e.message}`, 'mal'));
     anotar(`~${palabra}.s(${num}) suena · ${r.id}`);
   } else {
     mostrarEnEscenario(letra, r);
@@ -309,8 +419,22 @@ function silencio() {
   anotar('silencio');
 }
 
+/** ⌃⇧⏎ evalúa todos los slots activos, no solo el que se está mirando. */
 function evaluarTodo() {
-  $('#editor').value.split('\n').forEach((_, i) => evaluarLinea(i));
+  slots[slotActual].texto = $('#editor').value;
+  const activos = slots.map((s, i) => [s, i]).filter(([s]) => s.activo);
+  if (!activos.length) { anotar('todos los slots están apagados', 'mal'); return; }
+
+  for (const [s, i] of activos) {
+    const lineas = s.texto.split('\n');
+    if (i === slotActual) {
+      lineas.forEach((_, n) => evaluarLinea(n));
+    } else {
+      // los otros slots se evalúan sin destello: su texto no está a la vista
+      lineas.forEach((_, n) => evaluarLinea(n, s.texto, i));
+    }
+  }
+  if (activos.length > 1) anotar(`evaluados ${activos.length} slots`);
 }
 
 /** Los chips del depósito escriben la invocación en el editor y la evalúan. */
@@ -388,6 +512,8 @@ zona.addEventListener('drop', ev => agregar(ev.dataTransfer.files));
 $('#archivos').addEventListener('change', ev => { agregar(ev.target.files); ev.target.value = ''; });
 $('#palabra').addEventListener('input', revisar);
 $('#depositar').addEventListener('click', depositar);
+$('#editor').addEventListener('input', () => { slots[slotActual].texto = $('#editor').value; });
+$('#editor').addEventListener('blur', guardarSlots);
 $('#editor').addEventListener('keydown', e => {
   const ctrl = e.ctrlKey || e.metaKey;
   if (ctrl && e.key === 'Enter') {
@@ -619,6 +745,7 @@ setInterval(() => {
   visual.nivel(n);
 }, 90);
 
+cargarSlots();
 pintarLlaves();
 revisar();
 resumenBanco();

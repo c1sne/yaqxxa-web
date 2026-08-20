@@ -428,3 +428,12 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 body.hay-expandido .tablero { pointer-events: none; }
 body.hay-expandido .bloque.expandido { pointer-events: auto; }
 body.hay-expandido .riel { z-index: 61; }
+
+/* la escena avisa cuándo tiene el teclado */
+.escena.activo { outline: 1px solid var(--frio); outline-offset: -1px; }
+
+/* ── foco: en qué bloque estoy ────────────────────────────────────────────── */
+
+.bloque.con-foco { border-color: var(--frio); }
+.bloque.con-foco > summary { background: #16161c; }
+.bloque.con-foco > summary .tit { color: var(--frio); }

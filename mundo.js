@@ -17,13 +17,20 @@ import * as ia from './ia.js';
 let cargando = null;
 let escena = null;
 let anillo = null;
+let rig = null;
 
 export const PARAMETROS = {
   giro:      { min: 0,   max: 180, paso: 1,    def: 18,  unidad: '°/s' },
   capas:     { min: 1,   max: 12,  paso: 1,    def: 5,   unidad: '' },
   escala:    { min: 0.2, max: 3,   paso: 0.05, def: 1,   unidad: '×' },
-  distancia: { min: 1,   max: 8,   paso: 0.1,  def: 3,   unidad: 'm' }
+  distancia: { min: 1,   max: 8,   paso: 0.1,  def: 3,   unidad: 'm' },
+  // el cuerpo que recorre el espacio
+  velocidad: { min: 0,   max: 20,  paso: 0.1,  def: 3,   unidad: 'm/s' },
+  salto:     { min: 0,   max: 15,  paso: 0.1,  def: 5,   unidad: 'm/s' },
+  gravedad:  { min: 0,   max: 30,  paso: 0.1,  def: 9.8, unidad: 'm/s²' }
 };
+
+const DEL_CUERPO = new Set(['velocidad', 'salto', 'gravedad']);
 
 const estado = Object.fromEntries(Object.entries(PARAMETROS).map(([k, v]) => [k, v.def]));
 let texturaActual = null;
@@ -43,6 +50,104 @@ export function cargarAframe() {
   return cargando;
 }
 
+// ── caminar ──────────────────────────────────────────────────────────────────
+//
+// A-Frame trae wasd-controls, pero escucha el teclado de toda la ventana: al
+// escribir "w" en el editor la cámara se movía. Este componente es propio para
+// poder decidir cuándo escucha, y porque sus valores —velocidad, salto,
+// gravedad— tienen que ser parámetros del sistema, no ajustes escondidos.
+//
+// Va sobre un rig que contiene la cámara: mover el rig y no la cámara es lo
+// correcto para XR, donde el visor manda sobre la posición de la cabeza.
+
+let registrado = false;
+
+function registrarCaminar(AFRAME) {
+  if (registrado) return;
+  registrado = true;
+
+  AFRAME.registerComponent('caminar', {
+    schema: {
+      velocidad: { default: 3 },
+      salto:     { default: 5 },
+      gravedad:  { default: 9.8 },
+      suelo:     { default: 0 },
+      activo:    { default: false }
+    },
+
+    init() {
+      this.teclas = new Set();
+      this.vy = 0;
+      this.enSuelo = true;
+      this.dir = new AFRAME.THREE.Vector3();
+
+      this.abajo = e => {
+        if (!this.data.activo) return;
+        // nunca robarle el teclado a quien está escribiendo
+        const a = document.activeElement;
+        if (a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) return;
+        this.teclas.add(e.code);
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+          e.preventDefault();   // que la página no scrollee
+        }
+      };
+      this.arriba = e => this.teclas.delete(e.code);
+      this.soltarTodo = () => this.teclas.clear();
+
+      window.addEventListener('keydown', this.abajo);
+      window.addEventListener('keyup', this.arriba);
+      window.addEventListener('blur', this.soltarTodo);
+    },
+
+    remove() {
+      window.removeEventListener('keydown', this.abajo);
+      window.removeEventListener('keyup', this.arriba);
+      window.removeEventListener('blur', this.soltarTodo);
+    },
+
+    tick(tiempo, delta) {
+      const dt = Math.min(100, delta || 16) / 1000;
+      const d = this.data;
+      const obj = this.el.object3D;
+      const k = this.teclas;
+
+      // desplazamiento en el plano, relativo a hacia dónde mira la cámara
+      let x = 0, z = 0;
+      if (k.has('KeyW') || k.has('ArrowUp'))    z -= 1;
+      if (k.has('KeyS') || k.has('ArrowDown'))  z += 1;
+      if (k.has('KeyA') || k.has('ArrowLeft'))  x -= 1;
+      if (k.has('KeyD') || k.has('ArrowRight')) x += 1;
+
+      if (x || z) {
+        const cam = this.el.querySelector('[camera]');
+        const giroY = cam ? cam.object3D.rotation.y : 0;
+        this.dir.set(x, 0, z).normalize();
+        const sin = Math.sin(giroY), cos = Math.cos(giroY);
+        const mx = this.dir.x * cos + this.dir.z * sin;
+        const mz = this.dir.z * cos - this.dir.x * sin;
+        const vel = d.velocidad * (k.has('ShiftLeft') || k.has('ShiftRight') ? 2 : 1);
+        obj.position.x += mx * vel * dt;
+        obj.position.z += mz * vel * dt;
+      }
+
+      // salto y gravedad
+      if (k.has('Space') && this.enSuelo && d.salto > 0) {
+        this.vy = d.salto;
+        this.enSuelo = false;
+      }
+      if (!this.enSuelo || this.vy !== 0) {
+        this.vy -= d.gravedad * dt;
+        obj.position.y += this.vy * dt;
+        if (obj.position.y <= d.suelo) {
+          obj.position.y = d.suelo;
+          this.vy = 0;
+          this.enSuelo = true;
+        }
+      }
+    }
+  });
+}
+
 // ── escena ───────────────────────────────────────────────────────────────────
 
 export async function montar(contenedor) {
@@ -55,12 +160,22 @@ export async function montar(contenedor) {
   escena.setAttribute('renderer', 'colorManagement: true; antialias: true');
   escena.setAttribute('background', 'color: #0b0b0d');
 
+  registrarCaminar(window.AFRAME);
+
+  // rig: lo que se mueve. La cámara va adentro, a la altura de los ojos.
+  rig = document.createElement('a-entity');
+  rig.setAttribute('position', '0 0 0');
+  rig.setAttribute('caminar', {
+    velocidad: estado.velocidad, salto: estado.salto, gravedad: estado.gravedad, activo: false
+  });
+
   const camara = document.createElement('a-entity');
   camara.setAttribute('camera', '');
   camara.setAttribute('position', '0 1.6 0');
   camara.setAttribute('look-controls', 'pointerLockEnabled: false');
-  camara.setAttribute('wasd-controls', 'enabled: false');
-  escena.append(camara);
+  camara.setAttribute('wasd-controls', 'enabled: false');   // el nuestro es caminar
+  rig.append(camara);
+  escena.append(rig);
 
   const luz = document.createElement('a-entity');
   luz.setAttribute('light', 'type: ambient; color: #ffffff; intensity: 0.7');
@@ -140,9 +255,20 @@ function girar() {
 export function poner(nombre, valor) {
   if (!(nombre in estado)) return;
   estado[nombre] = valor;
-  if (nombre === 'giro') girar();
-  else reconstruir();
+  if (DEL_CUERPO.has(nombre)) {
+    if (rig) rig.setAttribute('caminar', nombre, valor);
+  } else if (nombre === 'giro') {
+    girar();
+  } else {
+    reconstruir();
+  }
 }
+
+/** El teclado del mundo solo escucha cuando el monitor está activo. */
+export function activarTeclado(si) {
+  if (rig) rig.setAttribute('caminar', 'activo', !!si);
+}
+export const tecladoActivo = () => !!(rig && rig.getAttribute('caminar')?.activo);
 
 export const leer = () => ({ ...estado });
 

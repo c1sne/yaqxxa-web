@@ -421,9 +421,21 @@ async function abrirMundo() {
       : navigator.xr
         ? 'no hay visor conectado — la escena en pantalla funciona igual'
         : 'este navegador no tiene WebXR (en Quest, Android con Chrome o Vision Pro, sí)';
+    tecladoDelMundo();
   } catch (e) {
     nota.textContent = String(e.message || e);
   }
+}
+
+// ── el foco del mundo ────────────────────────────────────────────────────────
+//
+// WASD y espacio solo mueven la cámara cuando el monitor está activo: se
+// activa al hacer clic en la escena, se suelta al hacer clic afuera o al
+// tocar el editor. Sin esto, escribir "w" en el código te movía por el mundo.
+
+function tecladoDelMundo() {
+  const aviso = $('#foco-mundo');
+  if (aviso) aviso.textContent = 'clic en el bloque para caminar por el mundo';
 }
 
 function pintarParametros() {
@@ -544,6 +556,20 @@ const CABLES_CON_SEMANTICA = new Set([
   'bloque-codigo→bloque-audio',
   'bloque-codigo→bloque-video'
 ]);
+
+// Quien tiene el foco escucha: el mundo solo camina cuando el MONITOR está
+// enfocado, así escribir "w" en el CÓDIGO nunca mueve la cámara.
+tablero.escucharFoco(bloque => {
+  const esMonitor = bloque?.id === 'bloque-monitor';
+  mundo.activarTeclado(esMonitor);
+  $('#escena')?.classList.toggle('activo', esMonitor);
+  const aviso = $('#foco-mundo');
+  if (aviso) {
+    aviso.textContent = esMonitor
+      ? 'WASD o flechas caminan · espacio salta · shift corre'
+      : 'clic en el bloque para caminar por el mundo';
+  }
+});
 
 tablero.montarTablero({
   alAviso: anotar,

@@ -106,6 +106,7 @@ export function montarTablero(opciones = {}) {
   for (const b of lienzoEl.querySelectorAll('details.bloque')) prepararBloque(b);
 
   navegacion();
+  focoDeBloques();
   tecladoHistoria();
   if (!vistaGuardada) encuadrar();
   aplicarVista();
@@ -259,6 +260,45 @@ function asa(bloque, dir) {
   });
 }
 
+// ── foco: en qué bloque estoy ────────────────────────────────────────────────
+//
+// En vivo importa saber a dónde va cada tecla. Un bloque tiene el foco cuando
+// se hace clic en él; el borde se enciende y el teclado que ese bloque escucha
+// deja de ser ambiguo: WASD camina en el MONITOR y solo ahí, ⌃⏎ evalúa en el
+// CÓDIGO y solo ahí, ⌘Z ordena el tablero solo cuando no hay bloque con foco.
+//
+// El foco no se guarda: es de la sesión, no del patch.
+
+let conFoco = null;
+let alFoco = () => {};
+
+export const bloqueConFoco = () => conFoco;
+export const escucharFoco = fn => { alFoco = fn; };
+
+export function enfocar(bloque) {
+  if (conFoco === bloque) return;
+  const antes = conFoco;
+  if (antes) antes.classList.remove('con-foco');
+  conFoco = bloque || null;
+  if (conFoco) conFoco.classList.add('con-foco');
+  alFoco(conFoco, antes);
+}
+
+function focoDeBloques() {
+  document.addEventListener('pointerdown', e => {
+    const bloque = e.target.closest?.('details.bloque');
+    // clic en el fondo del tablero: nadie tiene el foco
+    enfocar(bloque && lienzoEl.contains(bloque) ? bloque : null);
+  }, true);
+
+  // escribir en un campo enfoca su bloque: el indicador tiene que ser fiel a
+  // dónde va el teclado, o en vivo miente
+  document.addEventListener('focus', e => {
+    const bloque = e.target?.closest?.('details.bloque');
+    if (bloque && lienzoEl.contains(bloque)) enfocar(bloque);
+  }, true);
+}
+
 // ── deshacer / rehacer ───────────────────────────────────────────────────────
 //
 // La historia es del TABLERO: mover, redimensionar, conectar y cortar cables.
@@ -327,6 +367,7 @@ function tecladoHistoria() {
     const k = e.key.toLowerCase();
     if (k === 'z') {
       if (enTexto) return;                    // el editor conserva su deshacer nativo
+      if (conFoco && conFoco.id === 'bloque-monitor') return;   // el mundo tiene lo suyo
       e.preventDefault();
       if (e.shiftKey) rehacer(); else deshacer();
     } else if (k === 'y' && !enTexto) {

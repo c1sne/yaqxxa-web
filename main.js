@@ -3,6 +3,7 @@
 import * as ia from './ia.js';
 import * as mundo from './mundo.js';
 import * as tablero from './tablero.js';
+import * as puente from './puente.js';
 import * as sinte from './sinte.js';
 import * as visual from './visualx.js';
 
@@ -377,10 +378,13 @@ async function evaluarLinea(nLinea, textoSlot = null, numSlot = null) {
   } else {
     mostrarEnEscenario(letra, r);
     anotar(`~${palabra}.${letra}(${num}) en escena · ${r.id}`);
-    if (letra === 'f' && mundoListo && tablero.conectado('bloque-codigo', 'bloque-monitor')) {
-      mundo.traer(palabra, letra, Number(num))
-        .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
-        .catch(() => {});
+    if (letra === 'f' && tablero.conectado('bloque-codigo', 'bloque-monitor')) {
+      puente.emitir('textura', { palabra, letra, n: Number(num), id: r.id });
+      if (mundoListo) {
+        mundo.traer(palabra, letra, Number(num))
+          .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
+          .catch(() => {});
+      }
     }
     // la foto entra al sintetizador de video como material, si el cable está
     if (letra === 'f' && tablero.conectado('bloque-codigo', 'bloque-video')) {
@@ -415,6 +419,7 @@ function silencio() {
   sinte.detener();
   refrescarAudio();
   visual.vaciarTextura();
+  puente.emitir('vaciar', null);
   $('#escenario').innerHTML = '';
   anotar('silencio');
 }
@@ -595,7 +600,7 @@ function propagar(idOrigen, valor, visitados = new Set()) {
 
     const v = spec.min + (spec.max - spec.min) * Math.min(1, Math.max(0, prop));
     const ajustado = spec.paso >= 1 ? Math.round(v) : v;
-    mundo.poner(param, ajustado);
+    ponerEnMundo(param, ajustado);
 
     const fila = [...document.querySelectorAll('.parametro')]
       .find(f => f.querySelector('span')?.textContent === param);
@@ -606,6 +611,13 @@ function propagar(idOrigen, valor, visitados = new Set()) {
     }
     propagar(destino, ajustado, visitados);
   }
+}
+
+// Un cambio de parámetro va al mundo de esta pestaña y, por el puente, al de
+// la pestaña aparte si está abierta. Las dos son el mismo mundo.
+function ponerEnMundo(nombre, valor) {
+  mundo.poner(nombre, valor);
+  puente.emitir('parametro', { nombre, valor });
 }
 
 function pintarParametros() {
@@ -626,7 +638,7 @@ function pintarParametros() {
         anotar('PARÁMETROS está desconectado del MONITOR — tirá el cable de nuevo', 'mal');
         return;
       }
-      mundo.poner(nombre, v);
+      ponerEnMundo(nombre, v);
     });
     fila.append(crear('span', null, nombre), rango, val);
     caja.append(fila);
@@ -646,6 +658,40 @@ async function traerAlMundo() {
     est.textContent = `${r.id} · ${r.ancho}×${r.alto}`;
   } catch (e) { est.textContent = String(e.message || e); }
 }
+
+// ── la pestaña aparte ────────────────────────────────────────────────────────
+//
+// El mundo se abre en su propia página, a pantalla completa: el instrumento en
+// la laptop, el mundo en el proyector. Las dos pestañas son el mismo mundo.
+
+let mundoAparte = null;
+
+$('#abrir-aparte').addEventListener('click', () => {
+  if (mundoAparte && !mundoAparte.closed) { mundoAparte.focus(); return; }
+  mundoAparte = window.open('mundo.html', 'yaqxxa-mundo');
+  if (!mundoAparte) { anotar('el navegador bloqueó la ventana — permitila y volvé a intentar', 'mal'); return; }
+  anotar('mundo abierto en pestaña aparte — los parámetros van a las dos');
+});
+
+puente.escuchar('hola', ({ desde }) => {
+  if (desde === 'mundo') {
+    anotar('la pestaña del mundo se conectó');
+    puente.emitir('hola', { desde: 'instrumento' });
+  }
+});
+
+// cuando la otra pestaña pide el estado, se le manda todo lo que hay
+puente.escuchar('pedir', () => {
+  for (const [nombre, valor] of Object.entries(mundo.leer())) {
+    puente.emitir('parametro', { nombre, valor });
+  }
+});
+
+puente.escuchar('adios', ({ desde }) => {
+  if (desde === 'mundo') anotar('la pestaña del mundo se cerró');
+});
+
+window.addEventListener('beforeunload', () => puente.emitir('adios', { desde: 'instrumento' }));
 
 const detMonitor = document.querySelector('#bloque-monitor');
 detMonitor.addEventListener('toggle', () => { if (detMonitor.open) abrirMundo(); });

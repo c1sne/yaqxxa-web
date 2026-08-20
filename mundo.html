@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yaqxxa · mundo</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  /* esta página es solo el mundo: sin tablero, sin bloques */
+  html, body { height: 100%; overflow: hidden; }
+  body { display: block; background: #000; }
+  #escena { position: fixed; inset: 0; height: auto; border: 0; border-radius: 0; }
+  .franja-mundo {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 12px; font-size: 11px; color: var(--tenue);
+    background: linear-gradient(to top, rgba(8,8,10,.9), transparent);
+    transition: opacity .3s;
+  }
+  body.quieto .franja-mundo { opacity: 0; pointer-events: none; }
+  .franja-mundo .marca { font-size: 11px; letter-spacing: .22em; color: var(--calido); font-weight: 700; }
+  .franja-mundo .hueco { flex: 1; }
+  #estado-puente { color: var(--frio); }
+</style>
+</head>
+<body>
+
+<div id="escena" class="escena"></div>
+
+<div class="franja-mundo">
+  <span class="marca">yaqxxa</span>
+  <span id="estado-puente">buscando el instrumento…</span>
+  <span class="hueco"></span>
+  <span class="tenue">WASD camina · espacio salta · shift corre</span>
+  <button id="pantalla-completa" class="btn chico">pantalla completa</button>
+  <button id="entrar-vr" class="btn chico" hidden>entrar en VR</button>
+  <span id="vr-nota" class="tenue"></span>
+</div>
+
+<script type="module" src="mundo-pagina.js"></script>
+</body>
+</html>

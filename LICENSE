@@ -1,0 +1,32 @@
+LICENCIA — PENDIENTE DE DECISIÓN
+
+yaqxxa · v4 · 20 de agosto de 2026
+
+Este archivo NO es una licencia. Es una declaración de intención, puesta acá
+para que el hueco sea visible en vez de invisible.
+
+ESTADO LEGAL ACTUAL
+Sin licencia elegida aplica el derecho de autor por defecto: todos los derechos
+reservados. Este repositorio es público, así que cualquiera puede leer el código
+y nadie puede legalmente reutilizarlo. Eso contradice lo que el proyecto dice
+querer ser —apropiable, copiable, estudiable, forkeable— y hay que resolverlo.
+
+INTENCIÓN
+Que cualquier comunidad pueda usar, estudiar, modificar, redistribuir y forkear
+este proyecto, incluyendo desplegar su propia instancia, y que esa capacidad no
+pueda serle quitada después.
+
+RECOMENDACIÓN PROVISIONAL
+  código                       AGPL-3.0-or-later
+  documentación y vocabulario  CC BY-SA 4.0
+
+La AGPL alcanza el uso en red: si alguien ofrece esto como servicio, debe
+liberar sus cambios. Protege contra el cercamiento, a costa de restringir a
+quien quiera integrarlo en obra cerrada.
+
+PENDIENTE, Y NO ES UN DETALLE
+El vocabulario y el archivo son material comunitario. Quién puede licenciarlos
+no lo responde quien escribe el código.
+
+Para adoptar una licencia: reemplazar este archivo por su texto completo
+(https://www.gnu.org/licenses/agpl-3.0.txt para AGPL-3.0).

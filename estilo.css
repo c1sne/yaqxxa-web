@@ -1,0 +1,87 @@
+/* yaqxxa v4 — hoja base.
+   Oscuro porque esto se toca en salas oscuras. Monoespaciado porque todo lo que
+   se ve acá es, o va a ser, código. */
+
+:root {
+  --fondo:  #0b0b0d;
+  --texto:  #d6d6dc;
+  --tenue:  #6b6b79;
+  --calido: #e0cfa4;
+  --frio:   #7fd4c1;
+  --alerta: #d99a7a;
+  --borde:  #24242c;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 14px/1.6 var(--mono);
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 62ch;
+  margin: 0 auto;
+  padding: 12vh 24px 18vh;
+}
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: .28em;
+  text-transform: lowercase;
+  color: var(--calido);
+}
+
+.bajada { margin: .4em 0 0; color: var(--texto); }
+.estado { margin: .2em 0 0; color: var(--tenue); font-size: 12px; }
+
+section { margin-top: 3.4em; }
+
+h2 {
+  margin: 0 0 .8em;
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  font-weight: 600;
+  border-bottom: 1px solid var(--borde);
+  padding-bottom: .5em;
+}
+
+p { margin: 0 0 1em; }
+.nota { color: var(--tenue); font-size: 12.5px; }
+
+ol { margin: 0; padding-left: 1.4em; color: var(--texto); }
+ol li { margin-bottom: .4em; }
+ol li::marker { color: var(--tenue); }
+
+dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  font-size: 13px;
+}
+dt { color: var(--tenue); }
+dd { margin: 0; text-align: right; }
+
+.si   { color: var(--frio); }
+.no   { color: var(--alerta); }
+.dato { color: var(--texto); }
+
+footer {
+  margin-top: 5em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--borde);
+  color: var(--tenue);
+  font-size: 12px;
+}
+footer p { margin: 0 0 .3em; }
+
+a { color: var(--calido); text-underline-offset: 3px; }
+a:hover { color: var(--frio); }

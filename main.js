@@ -44,8 +44,7 @@ function pintarLlaves() {
   caja.append(ayuda, acceso, secreto, guardar);
   ayuda.querySelector('[data-abrir-doc]').onclick = e => {
     e.preventDefault();
-    const d = document.querySelector('details.plegable');
-    d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    abrirPanel($('#panel-doc'));
   };
 }
 
@@ -365,15 +364,47 @@ $('#entrar-vr').addEventListener('click', () => {
   try { mundo.entrarVR(); } catch (e) { $('#vr-nota').textContent = String(e.message); }
 });
 
-const doc = $('#bloque-doc');
-doc.addEventListener('toggle', function una() {
-  if (doc.open) { capacidades(); doc.removeEventListener('toggle', una); }
+// ── cajones del riel ─────────────────────────────────────────────────────────
+//
+// ARCHIVO y la documentación no son bloques del tablero: viven detrás de los
+// iconos de la esquina derecha, como paneles que se despliegan.
+
+const CAJONES = [$('#panel-archivo'), $('#panel-doc')];
+const ICONOS = { 'panel-archivo': $('#icono-archivo'), 'panel-doc': $('#icono-doc') };
+let capacidadesMedidas = false;
+
+function abrirPanel(panel) {
+  for (const c of CAJONES) c.classList.toggle('abierto', c === panel);
+  refrescarIconos();
+  if (panel.id === 'panel-doc' && !capacidadesMedidas) {
+    capacidadesMedidas = true;
+    capacidades();
+  }
+}
+
+function alternarPanel(panel) {
+  if (panel.classList.contains('abierto')) {
+    panel.classList.remove('abierto');
+    refrescarIconos();
+  } else {
+    abrirPanel(panel);
+  }
+}
+
+function refrescarIconos() {
+  for (const c of CAJONES) ICONOS[c.id].classList.toggle('activo', c.classList.contains('abierto'));
+}
+
+$('#icono-archivo').addEventListener('click', () => alternarPanel($('#panel-archivo')));
+$('#icono-doc').addEventListener('click', () => alternarPanel($('#panel-doc')));
+for (const b of document.querySelectorAll('.cerrar-panel')) {
+  b.addEventListener('click', () => alternarPanel(b.closest('.cajon')));
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { for (const c of CAJONES) c.classList.remove('abierto'); refrescarIconos(); }
 });
 
 // ── memoria de qué bloques quedaron abiertos ─────────────────────────────────
-//
-// Si vas a usar esto seguido, no tiene sentido volver a plegar lo mismo cada vez.
-// Es lo único que yaqxxa guarda de vos, y es en tu propio navegador.
 
 const ABIERTOS = 'yaqxxa.abiertos';
 
@@ -381,7 +412,6 @@ function recordarPliegues() {
   const bloques = [...document.querySelectorAll('details.bloque')];
   let guardado;
   try { guardado = JSON.parse(localStorage.getItem(ABIERTOS)); } catch { guardado = null; }
-
   if (guardado) {
     for (const b of bloques) if (b.id in guardado) b.open = guardado[b.id];
   }
@@ -393,6 +423,61 @@ function recordarPliegues() {
   }
 }
 recordarPliegues();
+
+// ── el tablero: los bloques se arrastran desde su cabecera ───────────────────
+//
+// Como en un editor de nodos: agarrás la cabecera y movés el bloque. La
+// posición queda en tu navegador, junto con qué bloques dejaste abiertos.
+// Un arrastre no es un clic: si te moviste más de 5 px, soltar no pliega.
+
+const POSICIONES = 'yaqxxa.posiciones';
+let zTope = 10;
+
+function tableroArrastrable() {
+  if (!matchMedia('(min-width: 900px)').matches) return;
+  const tablero = $('#tablero');
+  let pos;
+  try { pos = JSON.parse(localStorage.getItem(POSICIONES)) || {}; } catch { pos = {}; }
+
+  for (const bloque of tablero.querySelectorAll('details.bloque')) {
+    if (pos[bloque.id]) {
+      bloque.style.left = pos[bloque.id].x + 'px';
+      bloque.style.top = pos[bloque.id].y + 'px';
+    }
+    const cabecera = bloque.querySelector('summary');
+    let x0, y0, bx, by, movido = false, pid = null;
+
+    cabecera.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      pid = e.pointerId;
+      try { cabecera.setPointerCapture(pid); } catch {}
+      x0 = e.clientX; y0 = e.clientY;
+      bx = bloque.offsetLeft; by = bloque.offsetTop;
+      movido = false;
+      bloque.style.zIndex = ++zTope;
+    });
+    cabecera.addEventListener('pointermove', e => {
+      if (pid === null) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      if (!movido && Math.hypot(dx, dy) < 5) return;
+      movido = true;
+      bloque.style.left = Math.max(0, bx + dx) + 'px';
+      bloque.style.top = Math.max(0, by + dy) + 'px';
+    });
+    cabecera.addEventListener('pointerup', () => {
+      if (pid === null) return;
+      pid = null;
+      if (movido) {
+        pos[bloque.id] = { x: bloque.offsetLeft, y: bloque.offsetTop };
+        try { localStorage.setItem(POSICIONES, JSON.stringify(pos)); } catch {}
+      }
+    });
+    cabecera.addEventListener('click', e => {
+      if (movido) { e.preventDefault(); movido = false; }
+    });
+  }
+}
+tableroArrastrable();
 
 pintarLlaves();
 revisar();

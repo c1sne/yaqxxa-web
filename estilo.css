@@ -1,114 +1,109 @@
-/* yaqxxa v4 — hoja base.
-   Oscuro porque esto se toca en salas oscuras. Monoespaciado porque todo lo que
-   se ve acá es, o va a ser, código. */
+/* yaqxxa v4 — tablero de bloques.
+   Referencia asumida: ComfyUI — bloques sueltos sobre un fondo punteado, con
+   los paneles auxiliares detrás de iconos en el borde. Oscuro porque esto se
+   toca en salas oscuras; monoespaciado porque todo lo que se ve es código. */
 
 :root {
   --fondo:  #0b0b0d;
+  --punto:  #1d1d24;
+  --panel:  #131317;
+  --borde:  #26262e;
   --texto:  #d6d6dc;
   --tenue:  #6b6b79;
   --calido: #e0cfa4;
   --frio:   #7fd4c1;
   --alerta: #d99a7a;
-  --borde:  #24242c;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
 
+html, body { height: 100%; }
 body {
   margin: 0;
   background: var(--fondo);
   color: var(--texto);
-  font: 14px/1.6 var(--mono);
-  -webkit-text-size-adjust: 100%;
+  font: 13px/1.5 var(--mono);
+  overflow: hidden;
+  display: flex; flex-direction: column;
 }
 
-main {
-  max-width: 62ch;
-  margin: 0 auto;
-  padding: 12vh 24px 18vh;
-}
-
-h1 {
-  margin: 0;
-  font-size: 15px;
-  letter-spacing: .28em;
-  text-transform: lowercase;
-  color: var(--calido);
-}
-
-.bajada { margin: .4em 0 0; color: var(--texto); }
-.estado { margin: .2em 0 0; color: var(--tenue); font-size: 12px; }
-
-section { margin-top: 3.4em; }
-
-h2 {
-  margin: 0 0 .8em;
-  font-size: 11px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--tenue);
-  font-weight: 600;
-  border-bottom: 1px solid var(--borde);
-  padding-bottom: .5em;
-}
-
-p { margin: 0 0 1em; }
-.nota { color: var(--tenue); font-size: 12.5px; }
-
-ol { margin: 0; padding-left: 1.4em; color: var(--texto); }
-ol li { margin-bottom: .4em; }
-ol li::marker { color: var(--tenue); }
-
-dl {
-  margin: 0;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  font-size: 13px;
-}
-dt { color: var(--tenue); }
-dd { margin: 0; text-align: right; }
-
-.si   { color: var(--frio); }
-.no   { color: var(--alerta); }
-.dato { color: var(--texto); }
-
-footer {
-  margin-top: 5em;
-  padding-top: 1.2em;
-  border-top: 1px solid var(--borde);
-  color: var(--tenue);
-  font-size: 12px;
-}
-footer p { margin: 0 0 .3em; }
-
+.tenue { color: var(--tenue); }
+code { color: var(--calido); font-family: var(--mono); }
 a { color: var(--calido); text-underline-offset: 3px; }
 a:hover { color: var(--frio); }
 
-/* ── entorno de bloques ───────────────────────────────────────────────────── */
-
-body { display: block; }
-main { max-width: 74ch; padding: 24px 24px 12vh; }
+/* ── barra ──────────────────────────────────────────────────────────────── */
 
 .barra {
-  position: sticky; top: 0; z-index: 5;
+  flex: 0 0 auto;
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 24px; background: var(--fondo);
+  padding: 8px 14px;
+  background: var(--panel);
   border-bottom: 1px solid var(--borde);
+  z-index: 30;
 }
 .marca { font-size: 13px; letter-spacing: .26em; color: var(--calido); font-weight: 700; }
 .version { font-size: 11px; color: var(--tenue); }
 .hueco { flex: 1; }
 .resumen { font-size: 11px; color: var(--tenue); }
 
-.bloque { border: 1px solid var(--borde); border-radius: 4px; margin-bottom: 20px; }
-.bloque h2 {
-  margin: 0; padding: 7px 12px; border: 0;
-  border-bottom: 1px solid var(--borde);
-  background: #111114;
+/* ── riel de iconos, esquina derecha ────────────────────────────────────── */
+
+.riel {
+  position: fixed; top: 52px; right: 12px; z-index: 40;
+  display: flex; flex-direction: column; gap: 8px;
 }
-.bloque .cuerpo { padding: 14px 12px; }
+.icono {
+  width: 52px; padding: 7px 4px 5px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--panel); color: var(--tenue);
+  border: 1px solid var(--borde); border-radius: 5px;
+  font: inherit; cursor: pointer;
+}
+.icono .glifo { font-size: 17px; line-height: 1; }
+.icono .rotulo { font-size: 9px; letter-spacing: .08em; }
+.icono:hover { color: var(--texto); border-color: #3a3a46; }
+.icono.activo { color: var(--calido); border-color: var(--calido); }
+
+/* ── tablero ────────────────────────────────────────────────────────────── */
+
+.tablero {
+  flex: 1; position: relative; overflow: auto;
+  background-image: radial-gradient(circle, var(--punto) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.tablero > .bloque {
+  position: absolute;
+  border: 1px solid var(--borde); border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 6px 24px rgba(0,0,0,.45);
+  min-width: 280px;
+}
+#bloque-invocar { left: 36px; top: 30px;  width: min(560px, 62vw); }
+#bloque-mundo   { left: 36px; top: 270px; width: min(720px, 74vw); }
+
+.bloque > summary {
+  list-style: none;
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px;
+  background: #17171c;
+  border-bottom: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  cursor: grab; user-select: none; touch-action: none;
+}
+.bloque > summary:active { cursor: grabbing; }
+.bloque > summary::-webkit-details-marker { display: none; }
+.bloque > summary .tit { color: var(--calido); font-weight: 600; }
+.bloque > summary::after { content: '▸'; margin-left: auto; color: var(--tenue); }
+.bloque[open] > summary { border-bottom-color: var(--borde); }
+.bloque[open] > summary::after { content: '▾'; }
+
+.bloque .cuerpo { padding: 12px; }
+
+/* ── controles ──────────────────────────────────────────────────────────── */
 
 .btn {
   background: #1b1b21; color: var(--texto); border: 1px solid var(--borde);
@@ -118,28 +113,98 @@ main { max-width: 74ch; padding: 24px 24px 12vh; }
 .btn:disabled { opacity: .38; cursor: not-allowed; }
 .btn.chico { padding: 2px 7px; font-size: 11px; }
 
-/* llaves */
-.llaves { margin-bottom: 14px; font-size: 12px; }
-.llaves.sin { display: grid; gap: 6px; grid-template-columns: 1fr 1fr auto; }
-.llaves.sin p { grid-column: 1 / -1; margin: 0 0 4px; font-size: 12px; }
-.llaves.con { display: flex; align-items: center; gap: 8px; color: var(--tenue); }
-.llaves .punto { color: var(--frio); }
-.llaves input, .campos input[type=text], .invocacion {
+.chip {
+  background: #14140f; color: var(--calido); border: 1px solid var(--borde);
+  border-radius: 3px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer;
+}
+.chip:hover { border-color: var(--calido); }
+.chip.chico { padding: 1px 6px; font-size: 11px; }
+
+input[type=text], input[type=password], .invocacion {
   background: #08080a; color: var(--texto); border: 1px solid var(--borde);
   border-radius: 3px; padding: 5px 8px; font: inherit; font-size: 12px; width: 100%;
 }
 input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 
-/* soltar */
+.acciones { display: flex; align-items: center; gap: 8px; }
+.progreso { font-size: 11px; color: var(--tenue); }
+
+/* ── invocar ────────────────────────────────────────────────────────────── */
+
+.invocacion { flex: 1; font-size: 14px; color: var(--calido); }
+.invocacion.chico { font-size: 12px; }
+.leyenda { margin: 8px 0 0; font-size: 11px; }
+.salida { margin-top: 10px; }
+.salida .error { color: var(--alerta); }
+.vista-grande { background: #08080a; border: 1px solid var(--borde); border-radius: 3px; padding: 8px; }
+.vista-grande img, .vista-grande video { max-width: 100%; max-height: 320px; display: block; margin: 0 auto; border-radius: 2px; }
+.vista-grande audio { width: 100%; }
+.meta { display: flex; gap: 10px; align-items: baseline; margin-top: 6px; font-size: 11px; flex-wrap: wrap; }
+.titulillo { margin-top: 12px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+.ficha { margin: 4px 0 0; display: grid; grid-template-columns: 90px 1fr; gap: 2px 10px; font-size: 12px; }
+.ficha dt { color: var(--tenue); }
+.ficha dd { margin: 0; }
+.falta { color: var(--alerta); font-size: 11px; }
+.indice { margin-top: 12px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+
+/* ── mundo ──────────────────────────────────────────────────────────────── */
+
+.escena {
+  height: 320px; background: #08080a;
+  border: 1px solid var(--borde); border-radius: 3px;
+  overflow: hidden; position: relative; margin-bottom: 10px;
+}
+.escena a-scene, .escena canvas { width: 100% !important; height: 100% !important; display: block; }
+.escena:empty::after {
+  content: 'el mundo no está montado'; position: absolute; inset: 0;
+  display: grid; place-items: center; color: var(--tenue); font-size: 11px;
+}
+.nota-carga { font-size: 11px; margin: 0 0 10px; }
+
+.parametros { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 12px 0; }
+.parametro { display: grid; grid-template-columns: 66px 1fr 52px; align-items: center; gap: 8px; font-size: 11px; }
+.parametro span:first-child { color: var(--tenue); }
+.parametro input { width: 100%; }
+.parametro .valor { text-align: right; color: var(--frio); font-variant-numeric: tabular-nums; }
+
+/* ── cajones (paneles del riel) ─────────────────────────────────────────── */
+
+.cajon {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 50;
+  width: min(420px, 94vw);
+  background: var(--panel);
+  border-left: 1px solid var(--borde);
+  box-shadow: -12px 0 32px rgba(0,0,0,.5);
+  display: none;
+  flex-direction: column;
+}
+.cajon.abierto { display: flex; }
+.cajon-cabecera {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+}
+.cajon-cabecera .tit { color: var(--calido); font-weight: 600; }
+.cajon > .cuerpo { flex: 1; overflow-y: auto; padding: 14px; }
+
+/* ── archivo ────────────────────────────────────────────────────────────── */
+
+.llaves { margin-bottom: 14px; font-size: 12px; }
+.llaves.sin { display: grid; gap: 6px; }
+.llaves.sin p { margin: 0 0 4px; font-size: 12px; }
+.llaves.con { display: flex; align-items: center; gap: 8px; color: var(--tenue); }
+.llaves .punto { color: var(--frio); }
+
 .soltar {
   border: 1px dashed var(--borde); border-radius: 4px;
-  padding: 22px 12px; text-align: center; transition: border-color .12s, background .12s;
+  padding: 20px 12px; text-align: center; transition: border-color .12s, background .12s;
 }
 .soltar.encima { border-color: var(--calido); background: #14140f; }
 .soltar p { margin: 0; }
 .enlace-falso { color: var(--calido); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
-/* piezas */
 .piezas { display: grid; gap: 8px; margin-top: 10px; }
 .pieza {
   display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center;
@@ -152,70 +217,17 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 .pieza .info { font-size: 12px; min-width: 0; }
 .pieza .info b { color: var(--calido); }
 
-/* campos */
-.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.campos { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 14px 0; }
 .campos label { display: grid; gap: 3px; font-size: 11px; color: var(--tenue); }
-.campos .ancho { grid-column: 1 / -1; }
 .campos .casilla { display: flex; align-items: flex-start; gap: 7px; line-height: 1.4; }
 .campos .casilla input { width: auto; margin-top: 2px; }
-
-.acciones { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-.progreso { font-size: 11px; color: var(--tenue); }
 
 .resultado { margin-top: 12px; padding: 10px; border: 1px solid var(--borde); border-radius: 3px; font-size: 12px; }
 .resultado.error { border-color: var(--alerta); color: var(--alerta); white-space: pre-wrap; }
 .resultado .ok { color: var(--frio); margin: 0 0 8px; }
 .invocaciones { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-.chip {
-  background: #14140f; color: var(--calido); border: 1px solid var(--borde);
-  border-radius: 3px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer;
-}
-.chip:hover { border-color: var(--calido); }
-.chip.chico { padding: 1px 6px; font-size: 11px; }
 
-.aviso { margin: 14px 0 0; font-size: 11px; color: var(--tenue); line-height: 1.5; }
-.aviso b { color: var(--texto); }
-
-/* invocar */
-.invocacion { flex: 1; font-size: 14px; color: var(--calido); }
-.leyenda { margin: 8px 0 0; font-size: 11px; }
-.salida { margin-top: 12px; }
-.salida .error { color: var(--alerta); }
-.vista-grande { background: #08080a; border: 1px solid var(--borde); border-radius: 3px; padding: 8px; }
-.vista-grande img, .vista-grande video { max-width: 100%; display: block; margin: 0 auto; border-radius: 2px; }
-.vista-grande audio { width: 100%; }
-.meta { display: flex; gap: 10px; align-items: baseline; margin-top: 6px; font-size: 11px; flex-wrap: wrap; }
-.titulillo { margin-top: 12px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
-.ficha { margin-top: 4px; grid-template-columns: 90px 1fr; text-align: left; font-size: 12px; }
-.ficha dd { text-align: left; }
-.falta { color: var(--alerta); font-size: 11px; }
-.indice { margin-top: 12px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; font-size: 11px; }
-
-.mas { border-top: 1px solid var(--borde); padding-top: 14px; margin-top: 8px; }
-.mas summary { cursor: pointer; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
-.mas dl { margin-top: 10px; }
-
-@media (max-width: 620px) {
-  .campos, .llaves.sin { grid-template-columns: 1fr; }
-  main { padding: 16px 14px 12vh; }
-}
-
-/* ── bloque desplegable ───────────────────────────────────────────────────── */
-
-.plegable { padding: 0; }
-.plegable > summary {
-  list-style: none; cursor: pointer;
-  padding: 7px 12px; background: #111114;
-  border-bottom: 1px solid transparent;
-  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
-  display: flex; align-items: center; gap: 4px;
-}
-.plegable > summary::-webkit-details-marker { display: none; }
-.plegable > summary .tit { color: var(--tenue); font-weight: 600; }
-.plegable > summary::after { content: '▸'; margin-left: auto; color: var(--tenue); }
-.plegable[open] > summary { border-bottom-color: var(--borde); }
-.plegable[open] > summary::after { content: '▾'; }
-.plegable > summary:hover .tit { color: var(--calido); }
+/* ── documentación ──────────────────────────────────────────────────────── */
 
 .doc { font-size: 12.5px; line-height: 1.6; }
 .doc h3 {
@@ -223,86 +235,31 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   text-transform: uppercase; color: var(--calido); font-weight: 600;
 }
 .doc h3:first-child { margin-top: 0; }
-.doc p { margin: 0 0 8px; max-width: 72ch; }
+.doc p { margin: 0 0 8px; }
 .doc pre {
   margin: 8px 0 10px; padding: 9px 11px; overflow-x: auto;
   background: #08080a; border: 1px solid var(--borde); border-radius: 3px;
-  font-size: 11.5px; line-height: 1.5; color: var(--frio);
+  font-size: 11px; line-height: 1.5; color: var(--frio);
 }
 .doc .regla {
   border-left: 2px solid var(--calido); padding: 4px 0 4px 11px;
   color: var(--texto); margin: 10px 0 8px;
 }
-.doc dl { grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12px; text-align: left; }
-.doc dd { text-align: left; }
+.doc dl { margin: 0 0 8px; display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12px; }
+.doc dd { margin: 0; }
 .doc .endpoints dt { color: var(--frio); }
+#capacidades { grid-template-columns: 1fr auto; }
+#capacidades dd { text-align: right; font-variant-numeric: tabular-nums; }
+.si { color: var(--frio); } .no { color: var(--alerta); } .dato { color: var(--texto); }
 .doc .pie { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--borde); font-size: 11px; }
 
-/* ── bloque mundo ─────────────────────────────────────────────────────────── */
+/* ── pantallas chicas: el tablero vuelve a ser una lista ────────────────── */
 
-.escena {
-  height: 320px; background: #08080a;
-  border: 1px solid var(--borde); border-radius: 3px;
-  overflow: hidden; position: relative;
-}
-.escena a-scene, .escena canvas { width: 100% !important; height: 100% !important; display: block; }
-.escena:empty::after {
-  content: 'el mundo no está montado'; position: absolute; inset: 0;
-  display: grid; place-items: center; color: var(--tenue); font-size: 11px;
-}
-.nota-carga { font-size: 11px; margin: 0 0 10px; }
-.invocacion.chico { font-size: 12px; flex: 1; }
-
-.parametros { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 12px; }
-.parametro { display: grid; grid-template-columns: 66px 1fr 52px; align-items: center; gap: 8px; font-size: 11px; }
-.parametro span:first-child { color: var(--tenue); }
-.parametro input { width: 100%; }
-.parametro .valor { text-align: right; color: var(--frio); font-variant-numeric: tabular-nums; }
-
-@media (max-width: 620px) { .parametros { grid-template-columns: 1fr; } }
-
-/* los bloques que hacen algo se distinguen de los que explican */
-#bloque-archivo > summary .tit,
-#bloque-invocar > summary .tit,
-#bloque-mundo   > summary .tit { color: var(--calido); }
-.plegable > summary { user-select: none; }
-.plegable[open] > .cuerpo { padding-top: 14px; }
-
-/* ── disposición en dos columnas ──────────────────────────────────────────────
-   ARCHIVO va a la derecha, como panel fijo: se deposita mientras se mira el
-   resto. Los demás bloques corren por la izquierda. */
-
-@media (min-width: 900px) {
-  main {
-    max-width: 1240px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
-    gap: 0 18px;
-    align-items: start;
-  }
-  main > .bloque { margin-bottom: 18px; }
-
-  #bloque-archivo {
-    grid-column: 2;
-    grid-row: 1 / span 99;
-    position: sticky;
-    top: 54px;
-    max-height: calc(100vh - 72px);
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  #bloque-archivo > summary { flex: 0 0 auto; }
-  #bloque-archivo > .cuerpo { overflow-y: auto; min-height: 0; }
-
-  #bloque-invocar, #bloque-mundo, #bloque-doc { grid-column: 1; }
-
-  /* con más ancho, la ficha respira en dos columnas de verdad */
-  .campos { grid-template-columns: 1fr; }
-  .campos .ancho { grid-column: 1; }
-}
-
-@media (min-width: 1100px) {
-  .campos { grid-template-columns: 1fr 1fr; }
-  .campos .ancho { grid-column: 1 / -1; }
+@media (max-width: 899px) {
+  body { overflow: auto; }
+  .tablero { overflow: visible; }
+  .tablero > .bloque { position: static !important; width: auto !important; margin: 12px; }
+  .bloque > summary { cursor: pointer; }
+  .cajon { width: 100vw; }
+  .riel { top: auto; bottom: 12px; right: 12px; flex-direction: row; }
 }

@@ -16,12 +16,65 @@
   <span id="resumen-banco" class="resumen">…</span>
 </header>
 
-<main>
+<!-- riel de iconos: los paneles que no son bloques del tablero viven acá -->
+<nav class="riel">
+  <button id="icono-archivo" class="icono" title="ARCHIVO · depositar">
+    <span class="glifo">▤</span><span class="rotulo">archivo</span>
+  </button>
+  <button id="icono-doc" class="icono" title="cómo funciona">
+    <span class="glifo">?</span><span class="rotulo">docs</span>
+  </button>
+</nav>
 
-<!-- ─────────────── BLOQUE ARCHIVO ─────────────── -->
-<details class="bloque plegable" id="bloque-archivo" open>
-  <summary><span class="tit">ARCHIVO</span><span class="tenue"> · depositar</span></summary>
+<!-- el tablero: cada bloque es un nodo que se arrastra desde su cabecera -->
+<main id="tablero" class="tablero">
 
+  <details class="bloque" id="bloque-invocar" open>
+    <summary><span class="tit">INVOCAR</span><span class="tenue"> · llamar al banco</span></summary>
+    <div class="cuerpo">
+      <div class="acciones">
+        <input id="invocacion" type="text" class="invocacion" spellcheck="false"
+               autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
+        <button id="invocar" class="btn">invocar</button>
+      </div>
+      <p class="tenue leyenda"><code>.f</code> foto · <code>.s</code> sonido · <code>.v</code> video · <code>n</code> = número de depósito</p>
+      <div id="salida" class="salida"></div>
+    </div>
+  </details>
+
+  <details class="bloque" id="bloque-mundo">
+    <summary><span class="tit">MUNDO</span><span class="tenue"> · a-frame</span></summary>
+    <div class="cuerpo">
+      <p class="tenue nota-carga" id="nota-mundo">A-Frame pesa 1,28 MB y se carga
+      solo al abrir este bloque. Todavía no se descargó nada.</p>
+
+      <div id="escena" class="escena"></div>
+
+      <div class="acciones">
+        <input id="traer-inv" type="text" class="invocacion chico" spellcheck="false"
+               autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
+        <button id="traer" class="btn">traer al mundo</button>
+        <button id="vaciar" class="btn">vaciar</button>
+        <span id="mundo-estado" class="progreso"></span>
+      </div>
+
+      <div id="parametros" class="parametros"></div>
+
+      <div class="acciones">
+        <button id="entrar-vr" class="btn" hidden>entrar en VR</button>
+        <span id="vr-nota" class="tenue" style="font-size:11px"></span>
+      </div>
+    </div>
+  </details>
+
+</main>
+
+<!-- panel ARCHIVO: se despliega desde el icono de la esquina derecha -->
+<aside id="panel-archivo" class="cajon">
+  <header class="cajon-cabecera">
+    <span class="tit">ARCHIVO <span class="tenue">· depositar</span></span>
+    <button class="cerrar-panel btn chico">cerrar</button>
+  </header>
   <div class="cuerpo">
 
     <div id="llaves" class="llaves"></div>
@@ -66,50 +119,14 @@
     <div id="resultado" class="resultado" hidden></div>
 
   </div>
-</details>
+</aside>
 
-<!-- ─────────────── BLOQUE INVOCAR ─────────────── -->
-<details class="bloque plegable" id="bloque-invocar" open>
-  <summary><span class="tit">INVOCAR</span><span class="tenue"> · llamar al banco</span></summary>
-  <div class="cuerpo">
-    <div class="acciones">
-      <input id="invocacion" type="text" class="invocacion" spellcheck="false"
-             autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
-      <button id="invocar" class="btn">invocar</button>
-    </div>
-    <p class="tenue leyenda"><code>.f</code> foto · <code>.s</code> sonido · <code>.v</code> video · <code>n</code> = número de depósito</p>
-    <div id="salida" class="salida"></div>
-  </div>
-</details>
-
-<!-- ─────────────── BLOQUE MUNDO ─────────────── -->
-<details class="bloque plegable" id="bloque-mundo">
-  <summary><span class="tit">MUNDO</span><span class="tenue"> · a-frame · desplegar</span></summary>
-  <div class="cuerpo">
-    <p class="tenue nota-carga" id="nota-mundo">A-Frame pesa 1,28 MB y se carga
-    solo al abrir este bloque. Todavía no se descargó nada.</p>
-
-    <div id="escena" class="escena"></div>
-
-    <div class="acciones">
-      <input id="traer-inv" type="text" class="invocacion chico" spellcheck="false"
-             autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
-      <button id="traer" class="btn">traer al mundo</button>
-      <button id="vaciar" class="btn">vaciar</button>
-      <span id="mundo-estado" class="progreso"></span>
-    </div>
-
-    <div id="parametros" class="parametros"></div>
-
-    <div class="acciones">
-      <button id="entrar-vr" class="btn" hidden>entrar en VR</button>
-      <span id="vr-nota" class="tenue" style="font-size:11px"></span>
-    </div>
-  </div>
-</details>
-
-<details class="bloque plegable" id="bloque-doc">
-  <summary><span class="tit">CÓMO FUNCIONA</span><span class="tenue"> · desplegar</span></summary>
+<!-- panel de documentación -->
+<aside id="panel-doc" class="cajon">
+  <header class="cajon-cabecera">
+    <span class="tit">CÓMO FUNCIONA</span>
+    <button class="cerrar-panel btn chico">cerrar</button>
+  </header>
   <div class="cuerpo doc">
 
     <h3>Las llaves</h3>
@@ -167,9 +184,8 @@ identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
     en dos lugares.</p>
     <p class="tenue">A-Frame es la primera dependencia del proyecto. Pesa
     1,28&nbsp;MB, está guardada en <code>vendor/</code> y no en un CDN, y se
-    carga solo cuando abrís el bloque: con el archivo borrado, todo el resto de
-    yaqxxa sigue funcionando. La justificación y el riesgo declarado están en
-    <code>vendor/README.md</code>.</p>
+    carga solo cuando abrís el bloque. La justificación y el riesgo declarado
+    están en <code>vendor/README.md</code>.</p>
 
     <h3>Advertencias</h3>
     <p>Lo que depositás es <b>público y permanente</b>. Si hay personas en el
@@ -198,9 +214,7 @@ identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
     </p>
 
   </div>
-</details>
-
-</main>
+</aside>
 
 <script type="module" src="main.js"></script>
 </body>

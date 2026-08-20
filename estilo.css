@@ -44,7 +44,6 @@ a:hover { color: var(--frio); }
   z-index: 30;
 }
 .marca { font-size: 13px; letter-spacing: .26em; color: var(--calido); font-weight: 700; }
-.version { font-size: 11px; color: var(--tenue); }
 .hueco { flex: 1; }
 .resumen { font-size: 11px; color: var(--tenue); }
 

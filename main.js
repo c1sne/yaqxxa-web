@@ -597,6 +597,12 @@ pintarParametros();
 sinte.escucharEventos(ev => visual.evento(ev));
 visual.montar($('#lienzo-video'));
 
+$('#encaje').addEventListener('click', () => {
+  const nuevo = visual.leerEncaje() === 'contener' ? 'cubrir' : 'contener';
+  visual.ponerEncaje(nuevo);
+  $('#encaje').textContent = nuevo;
+});
+
 function refrescarAudio() {
   const b = $('#audio-onoff');
   b.textContent = sinte.estaCorriendo() ? 'sonando' : 'apagado';

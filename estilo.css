@@ -375,9 +375,13 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   background: linear-gradient(to right, var(--calido) var(--nivel, 0%), transparent var(--nivel, 0%));
 }
 .mini { font-size: 11px; margin: 10px 0 0; line-height: 1.6; }
-.cuerpo.sin-relleno { padding: 0; position: relative; overflow: hidden; }
-#lienzo-visual { display: block; }
-#sinte-onoff.activo { border-color: var(--calido); color: var(--calido); }
+/* el lienzo llena lo que le toque sin depender del tamaño intrínseco del
+   canvas: se mide la caja y el canvas se estira dentro de ella */
+.video-cuerpo { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.lienzo-caja { flex: 1; min-height: 60px; position: relative; overflow: hidden; }
+#lienzo-video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.video-acciones { flex: 0 0 auto; padding: 6px 8px; border-top: 1px solid var(--borde); }
+#audio-onoff.activo { border-color: var(--calido); color: var(--calido); }
 
 
 /* ── responsive por bloque (container queries) ────────────────────────────────

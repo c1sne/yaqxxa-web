@@ -29,6 +29,8 @@ uniform float u_altura;   // altura del último evento
 uniform float u_nivel;    // nivel de salida del sinte
 uniform sampler2D u_tex;
 uniform float u_hayTex;
+uniform float u_texProp;   // ancho/alto de la imagen
+uniform float u_encaje;    // 0 = contener (se ve entera) · 1 = cubrir (llena y recorta)
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res;
@@ -43,16 +45,37 @@ void main() {
   vec3 col;
 
   if (u_hayTex > 0.5) {
-    // la foto del banco, deformada por la señal
-    vec2 tuv = uv + d;
+    // Encaje por proporción: sin esto la imagen se estira a la forma del
+    // bloque y se ve cortada. Se calcula la escala que la contiene (o la que
+    // la cubre) y se centra.
+    float propLienzo = u_res.x / u_res.y;
+    vec2 escala = vec2(1.0);
+    if (u_encaje < 0.5) {
+      // contener: la imagen entera entra, con margen en el lado que sobra
+      if (u_texProp > propLienzo) escala.y = propLienzo / u_texProp;
+      else                        escala.x = u_texProp / propLienzo;
+    } else {
+      // cubrir: llena el bloque, recorta lo que sobra
+      if (u_texProp > propLienzo) escala.x = u_texProp / propLienzo;
+      else                        escala.y = propLienzo / u_texProp;
+    }
+    vec2 tuv = (uv + d - 0.5) / escala + 0.5;
+
+    // fuera de la imagen: fondo, no estiramiento del borde
+    if (tuv.x < 0.0 || tuv.x > 1.0 || tuv.y < 0.0 || tuv.y > 1.0) {
+      gl_FragColor = vec4(0.03, 0.03, 0.04, 1.0);
+      return;
+    }
     col = texture2D(u_tex, vec2(tuv.x, 1.0 - tuv.y)).rgb;
     // peso: aplasta el rango — posterizado creciente
     float pasos = mix(24.0, 4.0, u_peso);
     col = floor(col * pasos) / pasos;
     // golpe: corrimiento cromático
     if (u_golpe > 0.02) {
-      col.r = texture2D(u_tex, vec2(tuv.x + u_golpe * 0.02, 1.0 - tuv.y)).r;
-      col.b = texture2D(u_tex, vec2(tuv.x - u_golpe * 0.02, 1.0 - tuv.y)).b;
+      float cr = clamp(tuv.x + u_golpe * 0.02, 0.0, 1.0);
+      float cb = clamp(tuv.x - u_golpe * 0.02, 0.0, 1.0);
+      col.r = texture2D(u_tex, vec2(cr, 1.0 - tuv.y)).r;
+      col.b = texture2D(u_tex, vec2(cb, 1.0 - tuv.y)).b;
     }
   } else {
     // sin foto: campo de franjas por capa, esperando material
@@ -62,7 +85,9 @@ void main() {
       float y = (float(i) + 0.5) / u_capas;
       float onda = sin(uv.x * (freq + float(i) * 2.0) + u_t * (0.5 + float(i) * 0.2)) * 0.03 * (1.0 + u_golpe * 3.0);
       float dist = abs(uv.y - y - onda);
-      float linea = smoothstep(0.012 + u_peso * 0.02, 0.0, dist);
+      // el grosor se mide en proporción del alto, así no engorda al achicar
+      float grosor = (0.012 + u_peso * 0.02) * clamp(u_res.y / 320.0, 0.5, 2.0);
+      float linea = smoothstep(grosor, 0.0, dist);
       // ámbar del proyecto, más frío hacia arriba
       vec3 tono = mix(vec3(0.88, 0.81, 0.64), vec3(0.50, 0.83, 0.76), y);
       col += tono * linea * (0.35 + u_altura * 0.65);
@@ -80,7 +105,8 @@ void main() {
 let gl = null, lienzo = null, programa = null, unif = {};
 let señal = { densidad: 0, peso: 0.5, azar: 1, capas: 1, cola: 0 };
 let golpe = 0, altura = 0.5, nivelActual = 0;
-let tex = null, hayTex = false;
+let tex = null, hayTex = false, texProp = 1;
+let encaje = 0;   // 0 contener · 1 cubrir
 let t0 = 0, ultimo = 0, animando = false;
 
 export function montar(el) {
@@ -99,12 +125,16 @@ export function montar(el) {
   gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
 
   for (const n of ['u_res', 'u_t', 'u_densidad', 'u_peso', 'u_azar', 'u_capas',
-                   'u_cola', 'u_golpe', 'u_altura', 'u_nivel', 'u_tex', 'u_hayTex']) {
+                   'u_cola', 'u_golpe', 'u_altura', 'u_nivel', 'u_tex', 'u_hayTex',
+                   'u_texProp', 'u_encaje']) {
     unif[n] = gl.getUniformLocation(programa, n);
   }
 
   ajustar();
+  // se observa la caja del lienzo: es la que manda el tamaño, y el canvas está
+  // en absoluto adentro para no influir en la medición
   new ResizeObserver(ajustar).observe(lienzo.parentElement);
+  window.addEventListener('resize', ajustar);
   t0 = performance.now();
   if (!animando) { animando = true; requestAnimationFrame(cuadro); }
 }
@@ -127,25 +157,34 @@ export function textura(img) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  texProp = (img.naturalWidth || img.videoWidth || 1) / (img.naturalHeight || img.videoHeight || 1);
   hayTex = true;
 }
+
+/** contener: la imagen entera, con margen · cubrir: llena el bloque y recorta. */
+export function ponerEncaje(modo) { encaje = modo === 'cubrir' ? 1 : 0; }
+export const leerEncaje = () => (encaje ? 'cubrir' : 'contener');
 
 export function vaciarTextura() { hayTex = false; }
 
 function ajustar() {
   if (!lienzo || !lienzo.parentElement) return;
   const r = lienzo.parentElement.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return;
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  lienzo.width = Math.max(1, Math.floor(r.width * dpr));
-  lienzo.height = Math.max(1, Math.floor(r.height * dpr));
-  lienzo.style.width = r.width + 'px';
-  lienzo.style.height = r.height + 'px';
-  if (gl) gl.viewport(0, 0, lienzo.width, lienzo.height);
+  const w = Math.max(1, Math.round(r.width * dpr));
+  const h = Math.max(1, Math.round(r.height * dpr));
+  if (lienzo.width === w && lienzo.height === h) return;
+  lienzo.width = w;
+  lienzo.height = h;
+  // el tamaño en pantalla lo pone el CSS (inset: 0), acá solo el búfer
+  if (gl) gl.viewport(0, 0, w, h);
 }
 
 function cuadro(t) {
   requestAnimationFrame(cuadro);
   if (!gl) return;
+  ajustar();   // barato: ajustar() sale enseguida si el tamaño no cambió
   const dt = Math.min(100, t - ultimo) / 1000;
   ultimo = t;
   golpe = Math.max(0, golpe - dt * 3.2);
@@ -161,6 +200,8 @@ function cuadro(t) {
   gl.uniform1f(unif.u_altura, altura);
   gl.uniform1f(unif.u_nivel, nivelActual);
   gl.uniform1f(unif.u_hayTex, hayTex ? 1 : 0);
+  gl.uniform1f(unif.u_texProp, texProp);
+  gl.uniform1f(unif.u_encaje, encaje);
   if (hayTex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(unif.u_tex, 0); }
 
   gl.drawArrays(gl.TRIANGLES, 0, 3);

@@ -106,9 +106,11 @@ export function montarTablero(opciones = {}) {
   for (const b of lienzoEl.querySelectorAll('details.bloque')) prepararBloque(b);
 
   navegacion();
+  tecladoHistoria();
   if (!vistaGuardada) encuadrar();
   aplicarVista();
   dibujarCables();
+  marcarHistoria();   // el estado con el que se llegó es el piso de la historia
 }
 
 /** La vista queda mostrando los bloques, con margen, a zoom 1. */
@@ -219,7 +221,7 @@ function arrastre(bloque) {
   cab.addEventListener('pointerup', () => {
     if (pid === null) return;
     pid = null;
-    if (movido) guardarBloque(bloque, false);
+    if (movido) { guardarBloque(bloque, false); marcarHistoria(); }
   });
   cab.addEventListener('click', e => { if (movido) { e.preventDefault(); movido = false; } });
 }
@@ -250,8 +252,86 @@ function asa(bloque, dir) {
     if (pid === null) return;
     pid = null;
     guardarBloque(bloque, true);
+    marcarHistoria();
     // el monitor de A-Frame escucha resize de window, no de su contenedor
     window.dispatchEvent(new Event('resize'));
+  });
+}
+
+// ── deshacer / rehacer ───────────────────────────────────────────────────────
+//
+// La historia es del TABLERO: mover, redimensionar, conectar y cortar cables.
+// El texto del editor no pasa por acá — el textarea tiene el deshacer nativo
+// del navegador, y pisárselo sería peor que no tener nada.
+//
+// ⌘Z / ⌃Z deshace · ⌘⇧Z / ⌃⇧Z (o ⌃Y) rehace · máx. 100 pasos, en memoria.
+
+const historial = [];
+let hIndice = -1;
+const HIST_MAX = 100;
+
+function foto() {
+  const bloques = {};
+  for (const b of lienzoEl.querySelectorAll('details.bloque')) {
+    bloques[b.id] = { left: b.style.left, top: b.style.top, width: b.style.width, height: b.style.height };
+  }
+  // un bloque expandido vive fuera del lienzo mientras dura: no entra en la
+  // foto, y deshacer no lo toca. Límite conocido y aceptado.
+  return { bloques, cables: conexiones.map(c => ({ ...c })) };
+}
+
+function marcarHistoria() {
+  historial.splice(hIndice + 1);
+  historial.push(foto());
+  if (historial.length > HIST_MAX) historial.shift();
+  hIndice = historial.length - 1;
+}
+
+function aplicarFoto(f) {
+  for (const [id, g] of Object.entries(f.bloques)) {
+    const b = document.getElementById(id);
+    if (!b || b.classList.contains('expandido')) continue;
+    b.style.left = g.left; b.style.top = g.top;
+    b.style.width = g.width; b.style.height = g.height;
+    const q = pos[id] || (pos[id] = {});
+    q.x = b.offsetLeft; q.y = b.offsetTop;
+    if (g.width) q.w = b.offsetWidth;
+    if (g.height) q.h = b.offsetHeight;
+  }
+  guardar(POSICIONES, pos);
+  conexiones = f.cables.map(c => ({ ...c }));
+  guardar(GRAFO, conexiones);
+  dibujarCables();
+}
+
+export function deshacer() {
+  if (hIndice <= 0) { alAviso('no hay nada más que deshacer'); return; }
+  hIndice--;
+  aplicarFoto(historial[hIndice]);
+  alAviso(`deshecho (${hIndice}/${historial.length - 1})`);
+}
+
+export function rehacer() {
+  if (hIndice >= historial.length - 1) { alAviso('no hay nada que rehacer'); return; }
+  hIndice++;
+  aplicarFoto(historial[hIndice]);
+  alAviso(`rehecho (${hIndice}/${historial.length - 1})`);
+}
+
+function tecladoHistoria() {
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const enTexto = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '') ||
+                    document.activeElement?.isContentEditable;
+    const k = e.key.toLowerCase();
+    if (k === 'z') {
+      if (enTexto) return;                    // el editor conserva su deshacer nativo
+      e.preventDefault();
+      if (e.shiftKey) rehacer(); else deshacer();
+    } else if (k === 'y' && !enTexto) {
+      e.preventDefault();
+      rehacer();
+    }
   });
 }
 
@@ -375,6 +455,7 @@ function alternarConexion(de, a) {
   }
   guardar(GRAFO, conexiones);
   dibujarCables();
+  marcarHistoria();
   alCambioDeCable(de, a);
 }
 

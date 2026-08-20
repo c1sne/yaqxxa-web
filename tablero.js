@@ -30,11 +30,37 @@ let zTope = 10;
 const leer = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
+// Los bloques se renombraron (invocar→codigo, sinte→audio, visual→video) y el
+// estado guardado en el navegador de quien ya venía usando esto tiene los ids
+// viejos. Sin esto, se le perderían las posiciones y los cables en silencio.
+const RENOMBRES = {
+  'bloque-invocar': 'bloque-codigo',
+  'bloque-sinte': 'bloque-audio',
+  'bloque-visual': 'bloque-video'
+};
+const alDia = id => RENOMBRES[id] || id;
+
+function migrar() {
+  const pos = leer(POSICIONES, null);
+  if (pos && Object.keys(pos).some(k => k in RENOMBRES)) {
+    guardar(POSICIONES, Object.fromEntries(Object.entries(pos).map(([k, v]) => [alDia(k), v])));
+  }
+  const grafo = leer(GRAFO, null);
+  if (grafo && grafo.some(c => c.de in RENOMBRES || c.a in RENOMBRES)) {
+    guardar(GRAFO, grafo.map(c => ({ de: alDia(c.de), a: alDia(c.a) })));
+  }
+  const abiertos = leer('yaqxxa.abiertos', null);
+  if (abiertos && Object.keys(abiertos).some(k => k in RENOMBRES)) {
+    guardar('yaqxxa.abiertos', Object.fromEntries(Object.entries(abiertos).map(([k, v]) => [alDia(k), v])));
+  }
+}
+
 export function conectado(de, a) {
   return conexiones.some(c => c.de === de && c.a === a);
 }
 
 export function montarTablero(opciones = {}) {
+  migrar();
   alAviso = opciones.alAviso || (() => {});
   alCambioDeCable = opciones.alCambioDeCable || (() => {});
   conexiones = leer(GRAFO, null) ?? (opciones.cablesIniciales || []);
@@ -120,6 +146,7 @@ function prepararBloque(bloque) {
   arrastre(bloque);
   for (const dir of ['e', 's', 'se']) asa(bloque, dir);
   puertos(bloque);
+  expandir(bloque);
   bloque.addEventListener('toggle', dibujarCables);
 }
 
@@ -191,6 +218,68 @@ function asa(bloque, dir) {
     window.dispatchEvent(new Event('resize'));
   });
 }
+
+// ── expandido ────────────────────────────────────────────────────────────────
+//
+// Un bloque puede ocupar la pantalla entera sin salir de la aplicación: no es
+// pantalla completa del sistema operativo, es el bloque agrandado sobre el
+// tablero. Útil sobre todo para el MONITOR, que es donde uno quiere mirar.
+// Escape lo devuelve.
+
+let expandidoActual = null;
+
+function expandir(bloque) {
+  const btn = document.createElement('button');
+  btn.className = 'expandir';
+  btn.type = 'button';
+  btn.title = 'expandir — Escape para volver';
+  btn.textContent = '⤢';
+  bloque.querySelector('summary').append(btn);
+
+  btn.addEventListener('pointerdown', e => e.stopPropagation());   // no arrastrar
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    alternarExpandido(bloque);
+  });
+}
+
+// Dónde estaba el bloque antes de expandirse, para devolverlo a su sitio.
+const nido = new WeakMap();
+
+export function alternarExpandido(bloque) {
+  const abrir = expandidoActual !== bloque;
+  if (expandidoActual) devolver(expandidoActual);
+  if (abrir) {
+    bloque.open = true;
+    // Un ancestro con transform —el lienzo del tablero— se vuelve el marco de
+    // referencia de position:fixed, así que el bloque se mediría contra los
+    // 6000px del mundo en vez de contra la ventana. Se saca del lienzo
+    // mientras dure el expandido y se devuelve exactamente a su lugar.
+    nido.set(bloque, { padre: bloque.parentNode, hermano: bloque.nextSibling });
+    document.body.append(bloque);
+    bloque.classList.add('expandido');
+    bloque.querySelector('.expandir').textContent = '⤡';
+    expandidoActual = bloque;
+  }
+  document.body.classList.toggle('hay-expandido', !!expandidoActual);
+  // los motores que dibujan escuchan resize de window, no de su contenedor
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  dibujarCables();
+}
+
+function devolver(bloque) {
+  bloque.classList.remove('expandido');
+  bloque.querySelector('.expandir').textContent = '⤢';
+  const n = nido.get(bloque);
+  if (n && n.padre) n.padre.insertBefore(bloque, n.hermano);
+  nido.delete(bloque);
+  expandidoActual = null;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && expandidoActual) alternarExpandido(expandidoActual);
+});
 
 // ── puertos y cables ─────────────────────────────────────────────────────────
 
@@ -271,6 +360,7 @@ export function dibujarCables() {
   for (const c of conexiones) {
     const de = document.getElementById(c.de), a = document.getElementById(c.a);
     if (!de || !a) continue;
+    if (de.parentNode !== lienzoEl || a.parentNode !== lienzoEl) continue;   // alguno está expandido
     const path = trazo();
     path.setAttribute('d', curva(salidaDe(de), entradaDe(a)));
     path.addEventListener('click', () => alternarConexion(c.de, c.a));

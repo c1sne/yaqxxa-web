@@ -35,7 +35,7 @@
   <!-- el espacio: zoom con rueda, paneo arrastrando el fondo, doble clic vuelve -->
   <div id="lienzo-t" class="lienzo-t">
 
-  <details class="bloque" id="bloque-invocar" open>
+  <details class="bloque" id="bloque-codigo" open>
     <summary><span class="tit">CÓDIGO</span><span class="tenue"> · el lenguaje corre acá</span></summary>
     <div class="cuerpo">
       <div class="editor-marco">
@@ -56,7 +56,7 @@ cola(0.4)
   </details>
 
   <details class="bloque" id="bloque-monitor">
-    <summary><span class="tit">MONITOR</span><span class="tenue"> · a-frame</span></summary>
+    <summary><span class="tit">MONITOR INMERSIVO</span><span class="tenue"> · a-frame</span></summary>
     <div class="cuerpo">
       <p class="tenue nota-carga" id="nota-mundo">A-Frame pesa 1,28 MB y se carga
       solo al abrir este bloque. Todavía no se descargó nada.</p>
@@ -82,12 +82,12 @@ cola(0.4)
     </div>
   </details>
 
-  <details class="bloque" id="bloque-sinte" open>
-    <summary><span class="tit">SINTE</span><span class="tenue"> · tone.js</span></summary>
+  <details class="bloque" id="bloque-audio" open>
+    <summary><span class="tit">AUDIO</span><span class="tenue"> · tone.js</span></summary>
     <div class="cuerpo">
       <div class="acciones">
-        <button id="sinte-onoff" class="btn">apagado</button>
-        <div id="sinte-medidor" class="medidor" title="nivel"></div>
+        <button id="audio-onoff" class="btn">apagado</button>
+        <div id="audio-medidor" class="medidor" title="nivel"></div>
       </div>
       <p class="tenue mini">recibe por cable las palabras de señal del CÓDIGO:<br>
       <code>densidad</code> <code>peso</code> <code>pulso</code> <code>azar</code>
@@ -97,10 +97,10 @@ cola(0.4)
     </div>
   </details>
 
-  <details class="bloque" id="bloque-visual" open>
-    <summary><span class="tit">VISUAL</span><span class="tenue"> · shaders</span></summary>
+  <details class="bloque" id="bloque-video" open>
+    <summary><span class="tit">VIDEO</span><span class="tenue"> · shaders</span></summary>
     <div class="cuerpo sin-relleno">
-      <canvas id="lienzo-visual"></canvas>
+      <canvas id="lienzo-video"></canvas>
     </div>
   </details>
 

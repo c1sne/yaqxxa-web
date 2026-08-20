@@ -107,7 +107,7 @@ a:hover { color: var(--frio); }
   flex: 1; min-height: 0; overflow: auto;
   display: flex; flex-direction: column;
 }
-#bloque-invocar    { left: 36px;  top: 30px;  width: min(560px, 46vw); height: 380px; }
+#bloque-codigo    { left: 36px;  top: 30px;  width: min(560px, 46vw); height: 380px; }
 #bloque-monitor    { left: 640px; top: 30px;  width: 520px; height: 430px; }
 #bloque-parametros { left: 640px; top: 490px; width: 420px; }
 
@@ -359,8 +359,8 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 
 /* ── sinte y visual ───────────────────────────────────────────────────────── */
 
-#bloque-sinte  { left: 36px;  top: 460px; width: 300px; }
-#bloque-visual { left: 370px; top: 460px; width: 330px; height: 240px; }
+#bloque-audio  { left: 36px;  top: 460px; width: 300px; }
+#bloque-video { left: 370px; top: 460px; width: 330px; height: 240px; }
 
 .medidor {
   width: 90px; height: 10px; align-self: center;
@@ -392,3 +392,32 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   .parametro { grid-template-columns: 1fr; gap: 2px; }
   .parametro .valor { text-align: left; }
 }
+
+/* ── expandido: un bloque ocupa la pantalla, sin salir de la aplicación ────── */
+
+.expandir {
+  background: none; border: 0; padding: 0 2px;
+  color: var(--tenue); font: inherit; font-size: 12px;
+  cursor: pointer; line-height: 1;
+}
+.expandir:hover { color: var(--calido); }
+
+.bloque.expandido {
+  position: fixed !important;
+  left: 12px !important; top: 52px !important;
+  width: auto !important; right: 12px;
+  height: auto !important; bottom: 12px;
+  z-index: 60;
+  box-shadow: 0 0 0 100vmax rgba(5, 5, 7, .82);
+}
+/* expandido: el bloque estira de verdad, y su contenido con él */
+.bloque.expandido { display: flex; flex-direction: column; }
+.bloque.expandido::details-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.bloque.expandido > .cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.bloque.expandido .escena { flex: 1; min-height: 0; }
+.bloque.expandido .nota-carga { flex: 0 0 auto; }
+
+/* el tablero no se mueve mientras hay un bloque expandido */
+body.hay-expandido .tablero { pointer-events: none; }
+body.hay-expandido .bloque.expandido { pointer-events: auto; }
+body.hay-expandido .riel { z-index: 61; }

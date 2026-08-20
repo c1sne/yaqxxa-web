@@ -171,11 +171,11 @@ function aplicarSeñal(nLinea, palabra, brutos) {
     anotar(`línea ${nLinea + 1} · ${palabra}() necesita un número`, 'mal');
     return;
   }
-  const alSinte = tablero.conectado('bloque-invocar', 'bloque-sinte');
-  const alVisual = tablero.conectado('bloque-invocar', 'bloque-visual');
-  if (!alSinte && !alVisual) {
+  const alAudio = tablero.conectado('bloque-codigo', 'bloque-audio');
+  const alVideo = tablero.conectado('bloque-codigo', 'bloque-video');
+  if (!alAudio && !alVideo) {
     destello(nLinea, 'mal');
-    anotar(`${palabra}() no llega a ningún motor — conectá CÓDIGO al SINTE o al VISUAL`, 'mal');
+    anotar(`${palabra}() no llega a ningún motor — conectá CÓDIGO al AUDIO o al VIDEO`, 'mal');
     return;
   }
 
@@ -186,9 +186,9 @@ function aplicarSeñal(nLinea, palabra, brutos) {
   else s[palabra] = lim(args[0], 0, 1);
 
   destello(nLinea);
-  if (alSinte) { sinte.poner(s); sinte.iniciar().then(refrescarSinte).catch(e => anotar(e.message, 'mal')); }
-  if (alVisual) visual.poner(s);
-  anotar(`${palabra} → ${alSinte ? 'sinte' : ''}${alSinte && alVisual ? ' + ' : ''}${alVisual ? 'visual' : ''}`);
+  if (alAudio) { sinte.poner(s); sinte.iniciar().then(refrescarAudio).catch(e => anotar(e.message, 'mal')); }
+  if (alVideo) visual.poner(s);
+  anotar(`${palabra} → ${alAudio ? 'audio' : ''}${alAudio && alVideo ? ' + ' : ''}${alVideo ? 'video' : ''}`);
 }
 
 const cacheResolucion = new Map();   // "palabra.letra.n" → resultado de ia.resolver
@@ -267,18 +267,18 @@ async function evaluarLinea(nLinea) {
   } else {
     mostrarEnEscenario(letra, r);
     anotar(`~${palabra}.${letra}(${num}) en escena · ${r.id}`);
-    if (letra === 'f' && mundoListo && tablero.conectado('bloque-invocar', 'bloque-monitor')) {
+    if (letra === 'f' && mundoListo && tablero.conectado('bloque-codigo', 'bloque-monitor')) {
       mundo.traer(palabra, letra, Number(num))
         .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
         .catch(() => {});
     }
     // la foto entra al sintetizador de video como material, si el cable está
-    if (letra === 'f' && tablero.conectado('bloque-invocar', 'bloque-visual')) {
+    if (letra === 'f' && tablero.conectado('bloque-codigo', 'bloque-video')) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         visual.textura(img);
-        anotar(`~${palabra}.f(${num}) → textura del visual, por el cable`);
+        anotar(`~${palabra}.f(${num}) → textura del video, por el cable`);
       };
       img.src = r.url;
     }
@@ -303,7 +303,7 @@ function silencio() {
   for (const a of sonando) a.pause();
   sonando.clear();
   sinte.detener();
-  refrescarSinte();
+  refrescarAudio();
   visual.vaciarTextura();
   $('#escenario').innerHTML = '';
   anotar('silencio');
@@ -540,17 +540,17 @@ recordarPliegues();
 
 const CABLES_CON_SEMANTICA = new Set([
   'bloque-parametros→bloque-monitor',
-  'bloque-invocar→bloque-monitor',
-  'bloque-invocar→bloque-sinte',
-  'bloque-invocar→bloque-visual'
+  'bloque-codigo→bloque-monitor',
+  'bloque-codigo→bloque-audio',
+  'bloque-codigo→bloque-video'
 ]);
 
 tablero.montarTablero({
   alAviso: anotar,
   cablesIniciales: [
     { de: 'bloque-parametros', a: 'bloque-monitor' },
-    { de: 'bloque-invocar', a: 'bloque-sinte' },
-    { de: 'bloque-invocar', a: 'bloque-visual' }
+    { de: 'bloque-codigo', a: 'bloque-audio' },
+    { de: 'bloque-codigo', a: 'bloque-video' }
   ],
   alCambioDeCable: (de, a) => {
     if (!CABLES_CON_SEMANTICA.has(de + '→' + a)) {
@@ -569,21 +569,21 @@ pintarParametros();
 // señal y el bus, que es la tesis de los prototipos hecha bloques.
 
 sinte.escucharEventos(ev => visual.evento(ev));
-visual.montar($('#lienzo-visual'));
+visual.montar($('#lienzo-video'));
 
-function refrescarSinte() {
-  const b = $('#sinte-onoff');
+function refrescarAudio() {
+  const b = $('#audio-onoff');
   b.textContent = sinte.estaCorriendo() ? 'sonando' : 'apagado';
   b.classList.toggle('activo', sinte.estaCorriendo());
 }
-$('#sinte-onoff').addEventListener('click', async () => {
+$('#audio-onoff').addEventListener('click', async () => {
   if (sinte.estaCorriendo()) sinte.detener();
   else await sinte.iniciar();
-  refrescarSinte();
+  refrescarAudio();
 });
 setInterval(() => {
   const n = sinte.nivel();
-  $('#sinte-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
+  $('#audio-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
   visual.nivel(n);
 }, 90);
 

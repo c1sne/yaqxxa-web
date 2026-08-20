@@ -178,7 +178,7 @@ input[type=text], input[type=password], .invocacion {
 }
 input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 
-.acciones { display: flex; align-items: center; gap: 8px; }
+.acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .progreso { font-size: 11px; color: var(--tenue); }
 
 /* ── invocar ────────────────────────────────────────────────────────────── */
@@ -366,3 +366,29 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 .cuerpo.sin-relleno { padding: 0; position: relative; overflow: hidden; }
 #lienzo-visual { display: block; }
 #sinte-onoff.activo { border-color: var(--calido); color: var(--calido); }
+
+
+/* ── responsive por bloque (container queries) ────────────────────────────────
+   Los bloques se redimensionan, así que lo de adentro responde al ancho del
+   BLOQUE, no al de la ventana. Cada cuerpo es un contenedor. */
+
+.bloque > .cuerpo { container-type: inline-size; }
+.cajon > .cuerpo { container-type: inline-size; }
+
+/* angosto: los parámetros se apilan uno sobre otro */
+@container (max-width: 420px) {
+  .parametros { grid-template-columns: 1fr; }
+}
+
+/* muy angosto: la fila se compacta y los campos de la ficha van a una columna */
+@container (max-width: 300px) {
+  .parametro { grid-template-columns: 48px 1fr 40px; gap: 6px; font-size: 10px; }
+  .campos { grid-template-columns: 1fr; }
+  .leyenda { display: none; }
+}
+
+/* mini: cada parámetro también se apila — nombre arriba, control abajo */
+@container (max-width: 220px) {
+  .parametro { grid-template-columns: 1fr; gap: 2px; }
+  .parametro .valor { text-align: left; }
+}

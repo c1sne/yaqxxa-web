@@ -3,6 +3,8 @@
 import * as ia from './ia.js';
 import * as mundo from './mundo.js';
 import * as tablero from './tablero.js';
+import * as sinte from './sinte.js';
+import * as visual from './visualx.js';
 
 const $ = s => document.querySelector(s);
 const crear = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -155,6 +157,40 @@ async function depositar() {
 const SINTAXIS = /^~?\s*([\p{L}\p{N}_-]+)\s*\.\s*([fsv])\s*\(\s*(\d+)\s*\)\s*$/u;
 const LINEA_ALTO = 20;   // px — tiene que coincidir con el line-height del CSS
 
+// Las palabras de señal: los siete nombres deliberadamente sosos del
+// prototipo 002. Describen lo que hacen y nada más — el vocabulario situado
+// sigue siendo un hueco, y las palabras con carga entran por el banco.
+const SEÑAL = /^(densidad|peso|pulso|azar|capas|cola)\s*\(\s*([\d.,\s]*)\s*\)$/;
+
+const lim = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function aplicarSeñal(nLinea, palabra, brutos) {
+  const args = brutos.split(',').map(x => parseFloat(x)).filter(x => !Number.isNaN(x));
+  if (!args.length) {
+    destello(nLinea, 'mal');
+    anotar(`línea ${nLinea + 1} · ${palabra}() necesita un número`, 'mal');
+    return;
+  }
+  const alSinte = tablero.conectado('bloque-invocar', 'bloque-sinte');
+  const alVisual = tablero.conectado('bloque-invocar', 'bloque-visual');
+  if (!alSinte && !alVisual) {
+    destello(nLinea, 'mal');
+    anotar(`${palabra}() no llega a ningún motor — conectá CÓDIGO al SINTE o al VISUAL`, 'mal');
+    return;
+  }
+
+  const s = {};
+  if (palabra === 'pulso') s.pulso = { bpm: lim(args[0], 30, 240), jitter: lim(args[1] ?? 0, 0, 1) };
+  else if (palabra === 'capas') s.capas = Math.round(lim(args[0], 1, 8));
+  else if (palabra === 'cola') s.cola = lim(args[0], 0, 0.95);
+  else s[palabra] = lim(args[0], 0, 1);
+
+  destello(nLinea);
+  if (alSinte) { sinte.poner(s); sinte.iniciar(); refrescarSinte(); }
+  if (alVisual) visual.poner(s);
+  anotar(`${palabra} → ${alSinte ? 'sinte' : ''}${alSinte && alVisual ? ' + ' : ''}${alVisual ? 'visual' : ''}`);
+}
+
 const cacheResolucion = new Map();   // "palabra.letra.n" → resultado de ia.resolver
 const sonando = new Set();           // Audio en reproducción, para el silencio
 
@@ -188,10 +224,17 @@ async function evaluarLinea(nLinea) {
   const texto = cruda.split('#')[0].trim();
   if (!texto) return;   // vacía o comentario
 
+  // ¿es una palabra de señal? densidad(0.5), pulso(96, 0.3)…
+  const ms = SEÑAL.exec(texto);
+  if (ms) {
+    aplicarSeñal(nLinea, ms[1], ms[2]);
+    return;
+  }
+
   const m = SINTAXIS.exec(texto);
   if (!m) {
     destello(nLinea, 'mal');
-    anotar(`línea ${nLinea + 1} · no entiendo «${texto}» — la forma es ~palabra.f(0)`, 'mal');
+    anotar(`línea ${nLinea + 1} · no entiendo «${texto}» — la forma es ~palabra.f(0) o densidad(0.5)`, 'mal');
     return;
   }
   const [, palabra, letra, num] = m;
@@ -249,6 +292,8 @@ function mostrarEnEscenario(letra, r) {
 function silencio() {
   for (const a of sonando) a.pause();
   sonando.clear();
+  sinte.detener();
+  refrescarSinte();
   $('#escenario').innerHTML = '';
   anotar('silencio');
 }
@@ -484,12 +529,18 @@ recordarPliegues();
 
 const CABLES_CON_SEMANTICA = new Set([
   'bloque-parametros→bloque-monitor',
-  'bloque-invocar→bloque-monitor'
+  'bloque-invocar→bloque-monitor',
+  'bloque-invocar→bloque-sinte',
+  'bloque-invocar→bloque-visual'
 ]);
 
 tablero.montarTablero({
   alAviso: anotar,
-  cablesIniciales: [{ de: 'bloque-parametros', a: 'bloque-monitor' }],
+  cablesIniciales: [
+    { de: 'bloque-parametros', a: 'bloque-monitor' },
+    { de: 'bloque-invocar', a: 'bloque-sinte' },
+    { de: 'bloque-invocar', a: 'bloque-visual' }
+  ],
   alCambioDeCable: (de, a) => {
     if (!CABLES_CON_SEMANTICA.has(de + '→' + a)) {
       anotar('ese cable todavía no hace nada — queda guardado igual', 'mal');
@@ -500,6 +551,28 @@ tablero.montarTablero({
 // los parámetros existen aunque el monitor no esté montado: mundo.poner()
 // guarda el estado y la escena lo toma cuando aparece
 pintarParametros();
+
+// ── sinte y visual ───────────────────────────────────────────────────────────
+//
+// El sinte emite eventos; el visual los dibuja. No se conocen: comparten la
+// señal y el bus, que es la tesis de los prototipos hecha bloques.
+
+sinte.escucharEventos(ev => visual.evento(ev));
+visual.montar($('#lienzo-visual'));
+
+function refrescarSinte() {
+  const b = $('#sinte-onoff');
+  b.textContent = sinte.estaCorriendo() ? 'sonando' : 'apagado';
+  b.classList.toggle('activo', sinte.estaCorriendo());
+}
+$('#sinte-onoff').addEventListener('click', async () => {
+  if (sinte.estaCorriendo()) sinte.detener();
+  else await sinte.iniciar();
+  refrescarSinte();
+});
+setInterval(() => {
+  $('#sinte-medidor').style.setProperty('--nivel', (sinte.nivel() * 100).toFixed(1) + '%');
+}, 90);
 
 pintarLlaves();
 revisar();

@@ -42,10 +42,14 @@
         <div id="destellos"></div>
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
                   wrap="off"># yaqxxa · ⌃⏎ evalúa la línea · ⌃⇧⏎ todas · ⌃. silencio
-# .f foto · .s sonido · .v video
+# ~palabra.f(0) invoca del banco · densidad(0.5) mueve los motores
 
-~alarako.f(0)
-~alarako.s(0)</textarea>
+densidad(0.55)
+pulso(96, 0.3)
+capas(3)
+cola(0.4)
+
+~alarako.f(0)</textarea>
       </div>
       <div id="estado-editor" class="estado-editor"></div>
     </div>
@@ -75,6 +79,26 @@
         <span id="mundo-estado" class="progreso"></span>
       </div>
       <div id="parametros" class="parametros"></div>
+    </div>
+  </details>
+
+  <details class="bloque" id="bloque-sinte" open>
+    <summary><span class="tit">SINTE</span><span class="tenue"> · audio propio</span></summary>
+    <div class="cuerpo">
+      <div class="acciones">
+        <button id="sinte-onoff" class="btn">apagado</button>
+        <div id="sinte-medidor" class="medidor" title="nivel"></div>
+      </div>
+      <p class="tenue mini">recibe por cable las palabras de señal del CÓDIGO:<br>
+      <code>densidad</code> <code>peso</code> <code>pulso</code> <code>azar</code>
+      <code>capas</code> <code>cola</code></p>
+    </div>
+  </details>
+
+  <details class="bloque" id="bloque-visual" open>
+    <summary><span class="tit">VISUAL</span><span class="tenue"> · canvas propio</span></summary>
+    <div class="cuerpo sin-relleno">
+      <canvas id="lienzo-visual"></canvas>
     </div>
   </details>
 

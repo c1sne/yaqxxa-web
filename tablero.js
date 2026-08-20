@@ -16,6 +16,9 @@ const POSICIONES = 'yaqxxa.posiciones';
 const GRAFO = 'yaqxxa.grafo';
 
 const MUNDO_ANCHO = 6000, MUNDO_ALTO = 6000;
+// Los bloques viven alrededor del centro del mundo, no de la esquina: así hay
+// espacio para ordenar y zoomear en todas las direcciones.
+const ORIGEN = 2700;
 const Z_MIN = 0.35, Z_MAX = 2.5;
 
 let vista = { x: 0, y: 0, z: 1 };
@@ -73,8 +76,26 @@ export function montarTablero(opciones = {}) {
   // pero las conexiones por defecto siguen valiendo como datos
   if (!matchMedia('(min-width: 900px)').matches) return;
 
-  vista = leer(VISTA, vista);
+  const vistaGuardada = leer(VISTA, null);
+  if (vistaGuardada) vista = vistaGuardada;
   pos = leer(POSICIONES, {});
+
+  // Quien ya usó el tablero tiene posiciones cerca de la esquina (el origen
+  // viejo). Se corren al centro y la vista se corre igual: visualmente no
+  // cambia nada, pero ahora hay mundo alrededor.
+  if (!leer('yaqxxa.centrado', false)) {
+    for (const k of Object.keys(pos)) {
+      pos[k].x = (pos[k].x || 0) + ORIGEN;
+      pos[k].y = (pos[k].y || 0) + ORIGEN;
+    }
+    if (Object.keys(pos).length) guardar(POSICIONES, pos);
+    if (vistaGuardada) {
+      vista.x -= ORIGEN * vista.z;
+      vista.y -= ORIGEN * vista.z;
+      guardar(VISTA, vista);
+    }
+    guardar('yaqxxa.centrado', true);
+  }
 
   svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.classList.add('cables');
@@ -85,8 +106,19 @@ export function montarTablero(opciones = {}) {
   for (const b of lienzoEl.querySelectorAll('details.bloque')) prepararBloque(b);
 
   navegacion();
+  if (!vistaGuardada) encuadrar();
   aplicarVista();
   dibujarCables();
+}
+
+/** La vista queda mostrando los bloques, con margen, a zoom 1. */
+function encuadrar() {
+  const bloques = [...lienzoEl.querySelectorAll('details.bloque')];
+  if (!bloques.length) { vista = { x: -ORIGEN, y: -ORIGEN, z: 1 }; return; }
+  const minX = Math.min(...bloques.map(b => b.offsetLeft));
+  const minY = Math.min(...bloques.map(b => b.offsetTop));
+  vista = { x: 36 - minX, y: 24 - minY, z: 1 };
+  guardar(VISTA, vista);
 }
 
 // ── vista: zoom y paneo ──────────────────────────────────────────────────────
@@ -128,8 +160,8 @@ function navegacion() {
 
   tableroEl.addEventListener('dblclick', e => {
     if (e.target !== tableroEl && e.target !== lienzoEl && e.target !== svg) return;
-    vista = { x: 0, y: 0, z: 1 };
-    aplicarVista(); guardar(VISTA, vista);
+    encuadrar();
+    aplicarVista();
   });
 }
 
@@ -141,6 +173,10 @@ function prepararBloque(bloque) {
     if (p.x != null) { bloque.style.left = p.x + 'px'; bloque.style.top = p.y + 'px'; }
     if (p.w != null) bloque.style.width = p.w + 'px';
     if (p.h != null) bloque.style.height = p.h + 'px';
+  } else {
+    // la posición por defecto del CSS, llevada al centro del mundo
+    bloque.style.left = (bloque.offsetLeft + ORIGEN) + 'px';
+    bloque.style.top = (bloque.offsetTop + ORIGEN) + 'px';
   }
 
   arrastre(bloque);

@@ -4,15 +4,15 @@
    toca en salas oscuras; monoespaciado porque todo lo que se ve es código. */
 
 :root {
-  --fondo:  #070a14;
-  --punto:  #16203a;
-  --panel:  #0d1424;
-  --borde:  #1e2a45;
-  --texto:  #cdd6e6;
-  --tenue:  #5f6d8a;
-  --acento: #4d8cff;   /* el color de yaqxxa */
-  --frio:   #6fd0e0;
-  --alerta: #d98a7a;
+  --fondo:  #0b0b0d;
+  --punto:  #1d1d24;
+  --panel:  #131317;
+  --borde:  #26262e;
+  --texto:  #d6d6dc;
+  --tenue:  #6b6b79;
+  --calido: #e0cfa4;
+  --frio:   #7fd4c1;
+  --alerta: #d99a7a;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -29,8 +29,8 @@ body {
 }
 
 .tenue { color: var(--tenue); }
-code { color: var(--acento); font-family: var(--mono); }
-a { color: var(--acento); text-underline-offset: 3px; }
+code { color: var(--calido); font-family: var(--mono); }
+a { color: var(--calido); text-underline-offset: 3px; }
 a:hover { color: var(--frio); }
 
 /* ── barra ──────────────────────────────────────────────────────────────── */
@@ -43,7 +43,7 @@ a:hover { color: var(--frio); }
   border-bottom: 1px solid var(--borde);
   z-index: 30;
 }
-.marca { font-size: 13px; letter-spacing: .26em; color: var(--acento); font-weight: 700; }
+.marca { font-size: 13px; letter-spacing: .26em; color: var(--calido); font-weight: 700; }
 .hueco { flex: 1; }
 .resumen { font-size: 11px; color: var(--tenue); }
 
@@ -62,8 +62,8 @@ a:hover { color: var(--frio); }
 }
 .icono .glifo { font-size: 17px; line-height: 1; }
 .icono .rotulo { font-size: 9px; letter-spacing: .08em; }
-.icono:hover { color: var(--texto); border-color: #2c3e63; }
-.icono.activo { color: var(--acento); border-color: var(--acento); }
+.icono:hover { color: var(--texto); border-color: #3a3a46; }
+.icono.activo { color: var(--calido); border-color: var(--calido); }
 
 /* ── tablero ────────────────────────────────────────────────────────────── */
 
@@ -128,7 +128,7 @@ a:hover { color: var(--frio); }
   width: 7px; height: 7px;
   border-right: 2px solid var(--tenue); border-bottom: 2px solid var(--tenue);
 }
-.bloque:hover .asa-se::after { border-color: var(--acento); }
+.bloque:hover .asa-se::after { border-color: var(--calido); }
 
 /* puertos de conexión */
 .puerto {
@@ -147,7 +147,7 @@ a:hover { color: var(--frio); }
   position: relative;   /* los puertos se anclan acá */
   display: flex; align-items: center; gap: 5px;
   padding: 7px 12px;
-  background: #101827;
+  background: #17171c;
   border-bottom: 1px solid transparent;
   border-radius: 6px 6px 0 0;
   font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
@@ -155,7 +155,7 @@ a:hover { color: var(--frio); }
 }
 .bloque > summary:active { cursor: grabbing; }
 .bloque > summary::-webkit-details-marker { display: none; }
-.bloque > summary .tit { color: var(--acento); font-weight: 600; }
+.bloque > summary .tit { color: var(--calido); font-weight: 600; }
 .bloque > summary::after { content: '▸'; margin-left: auto; color: var(--tenue); }
 .bloque[open] > summary { border-bottom-color: var(--borde); }
 .bloque[open] > summary::after { content: '▾'; }
@@ -165,37 +165,37 @@ a:hover { color: var(--frio); }
 /* ── controles ──────────────────────────────────────────────────────────── */
 
 .btn {
-  background: #152038; color: var(--texto); border: 1px solid var(--borde);
+  background: #1b1b21; color: var(--texto); border: 1px solid var(--borde);
   border-radius: 3px; padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer;
 }
-.btn:hover:not(:disabled) { border-color: var(--acento); color: var(--acento); }
+.btn:hover:not(:disabled) { border-color: var(--calido); color: var(--calido); }
 .btn:disabled { opacity: .38; cursor: not-allowed; }
 .btn.chico { padding: 2px 7px; font-size: 11px; }
 
 .chip {
-  background: #0f1830; color: var(--acento); border: 1px solid var(--borde);
+  background: #14140f; color: var(--calido); border: 1px solid var(--borde);
   border-radius: 3px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer;
 }
-.chip:hover { border-color: var(--acento); }
+.chip:hover { border-color: var(--calido); }
 .chip.chico { padding: 1px 6px; font-size: 11px; }
 
 input[type=text], input[type=password], .invocacion {
-  background: #050810; color: var(--texto); border: 1px solid var(--borde);
+  background: #08080a; color: var(--texto); border: 1px solid var(--borde);
   border-radius: 3px; padding: 5px 8px; font: inherit; font-size: 12px; width: 100%;
 }
-input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
+input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 
 .acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .progreso { font-size: 11px; color: var(--tenue); }
 
 /* ── invocar ────────────────────────────────────────────────────────────── */
 
-.invocacion { flex: 1; font-size: 14px; color: var(--acento); }
+.invocacion { flex: 1; font-size: 14px; color: var(--calido); }
 .invocacion.chico { font-size: 12px; }
 .leyenda { margin: 8px 0 0; font-size: 11px; }
 .salida { margin-top: 10px; }
 .salida .error { color: var(--alerta); }
-.vista-grande { background: #050810; border: 1px solid var(--borde); border-radius: 3px; padding: 8px; }
+.vista-grande { background: #08080a; border: 1px solid var(--borde); border-radius: 3px; padding: 8px; }
 .vista-grande img, .vista-grande video { max-width: 100%; max-height: 320px; display: block; margin: 0 auto; border-radius: 2px; }
 .vista-grande audio { width: 100%; }
 .meta { display: flex; gap: 10px; align-items: baseline; margin-top: 6px; font-size: 11px; flex-wrap: wrap; }
@@ -209,7 +209,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
 /* ── mundo ──────────────────────────────────────────────────────────────── */
 
 .escena {
-  flex: 1; min-height: 140px; background: #050810;
+  flex: 1; min-height: 140px; background: #08080a;
   border: 1px solid var(--borde); border-radius: 3px;
   overflow: hidden; position: relative; margin-bottom: 10px;
 }
@@ -250,7 +250,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
   border-bottom: 1px solid var(--borde);
   font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
 }
-.cajon-cabecera .tit { color: var(--acento); font-weight: 600; }
+.cajon-cabecera .tit { color: var(--calido); font-weight: 600; }
 .cajon > .cuerpo { flex: 1; overflow-y: auto; padding: 14px; }
 
 /* ── archivo ────────────────────────────────────────────────────────────── */
@@ -265,9 +265,9 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
   border: 1px dashed var(--borde); border-radius: 4px;
   padding: 20px 12px; text-align: center; transition: border-color .12s, background .12s;
 }
-.soltar.encima { border-color: var(--acento); background: #0f1830; }
+.soltar.encima { border-color: var(--calido); background: #14140f; }
 .soltar p { margin: 0; }
-.enlace-falso { color: var(--acento); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.enlace-falso { color: var(--calido); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 .piezas { display: grid; gap: 8px; margin-top: 10px; }
 .pieza {
@@ -275,11 +275,11 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
   border: 1px solid var(--borde); border-left: 2px solid var(--frio);
   border-radius: 3px; padding: 6px 8px;
 }
-.pieza .vista { width: 56px; height: 40px; display: grid; place-items: center; background: #050810; overflow: hidden; border-radius: 2px; }
+.pieza .vista { width: 56px; height: 40px; display: grid; place-items: center; background: #08080a; overflow: hidden; border-radius: 2px; }
 .pieza .vista img, .pieza .vista video { width: 100%; height: 100%; object-fit: cover; }
 .pieza .glifo { color: var(--frio); font-size: 20px; }
 .pieza .info { font-size: 12px; min-width: 0; }
-.pieza .info b { color: var(--acento); }
+.pieza .info b { color: var(--calido); }
 
 .campos { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 14px 0; }
 .campos label { display: grid; gap: 3px; font-size: 11px; color: var(--tenue); }
@@ -296,17 +296,17 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
 .doc { font-size: 12.5px; line-height: 1.6; }
 .doc h3 {
   margin: 20px 0 6px; font-size: 11px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--acento); font-weight: 600;
+  text-transform: uppercase; color: var(--calido); font-weight: 600;
 }
 .doc h3:first-child { margin-top: 0; }
 .doc p { margin: 0 0 8px; }
 .doc pre {
   margin: 8px 0 10px; padding: 9px 11px; overflow-x: auto;
-  background: #050810; border: 1px solid var(--borde); border-radius: 3px;
+  background: #08080a; border: 1px solid var(--borde); border-radius: 3px;
   font-size: 11px; line-height: 1.5; color: var(--frio);
 }
 .doc .regla {
-  border-left: 2px solid var(--acento); padding: 4px 0 4px 11px;
+  border-left: 2px solid var(--calido); padding: 4px 0 4px 11px;
   color: var(--texto); margin: 10px 0 8px;
 }
 .doc dl { margin: 0 0 8px; display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12px; }
@@ -339,7 +339,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
 
 .editor-marco {
   position: relative; flex: 1; min-height: 80px;
-  background: #03060e;
+  background: #050506;
   border: 1px solid var(--borde); border-radius: 3px;
   overflow: hidden;
 }
@@ -372,7 +372,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
 .medidor {
   width: 90px; height: 10px; align-self: center;
   border: 1px solid var(--borde); border-radius: 2px;
-  background: linear-gradient(to right, var(--acento) var(--nivel, 0%), transparent var(--nivel, 0%));
+  background: linear-gradient(to right, var(--calido) var(--nivel, 0%), transparent var(--nivel, 0%));
 }
 .mini { font-size: 11px; margin: 10px 0 0; line-height: 1.6; }
 /* el lienzo llena lo que le toque sin depender del tamaño intrínseco del
@@ -381,7 +381,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
 .lienzo-caja { flex: 1; min-height: 60px; position: relative; overflow: hidden; }
 #lienzo-video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .video-acciones { flex: 0 0 auto; padding: 6px 8px; border-top: 1px solid var(--borde); }
-#audio-onoff.activo { border-color: var(--acento); color: var(--acento); }
+#audio-onoff.activo { border-color: var(--calido); color: var(--calido); }
 
 
 /* ── responsive por bloque (container queries) ────────────────────────────────
@@ -411,7 +411,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
   color: var(--tenue); font: inherit; font-size: 12px;
   cursor: pointer; line-height: 1;
 }
-.expandir:hover { color: var(--acento); }
+.expandir:hover { color: var(--calido); }
 
 .bloque.expandido {
   position: fixed !important;
@@ -419,7 +419,7 @@ input:focus { outline: 1px solid var(--acento); outline-offset: -1px; }
   width: auto !important; right: 12px;
   height: auto !important; bottom: 12px;
   z-index: 60;
-  box-shadow: 0 0 0 100vmax rgba(4, 7, 16, .84);
+  box-shadow: 0 0 0 100vmax rgba(5, 5, 7, .82);
 }
 /* expandido: el bloque estira de verdad, y su contenido con él */
 .bloque.expandido { display: flex; flex-direction: column; }
@@ -439,7 +439,7 @@ body.hay-expandido .riel { z-index: 61; }
 /* ── foco: en qué bloque estoy ────────────────────────────────────────────── */
 
 .bloque.con-foco { border-color: var(--frio); }
-.bloque.con-foco > summary { background: #111a2c; }
+.bloque.con-foco > summary { background: #16161c; }
 .bloque.con-foco > summary .tit { color: var(--frio); }
 
 /* ── slots del bloque CÓDIGO ──────────────────────────────────────────────────
@@ -452,16 +452,16 @@ body.hay-expandido .riel { z-index: 61; }
 }
 .slot {
   display: flex; align-items: center; gap: 5px;
-  background: #111a2c; border: 1px solid var(--borde); border-radius: 3px;
+  background: #16161c; border: 1px solid var(--borde); border-radius: 3px;
   padding: 2px 4px 2px 6px; font: inherit; font-size: 11px; color: var(--tenue);
   cursor: pointer;
 }
 .slot:hover { color: var(--texto); }
-.slot.actual { border-color: var(--acento); color: var(--acento); background: #132244; }
+.slot.actual { border-color: var(--calido); color: var(--calido); background: #1a1a12; }
 .slot .casilla-slot {
   width: 12px; height: 12px; display: grid; place-items: center;
   border: 1px solid var(--borde); border-radius: 2px;
-  font-size: 9px; line-height: 1; color: var(--frio); background: #050810;
+  font-size: 9px; line-height: 1; color: var(--frio); background: #08080a;
 }
 .slot.apagado { opacity: .5; }
 .slot.apagado .casilla-slot { color: transparent; }
@@ -472,7 +472,7 @@ body.hay-expandido .riel { z-index: 61; }
   color: var(--tenue); font: inherit; font-size: 12px; cursor: pointer;
   padding: 2px 9px;
 }
-.slot-mas:hover { border-color: var(--acento); color: var(--acento); }
+.slot-mas:hover { border-color: var(--calido); color: var(--calido); }
 
 /* ── puertos por parámetro ────────────────────────────────────────────────────
    Cada perilla con su jack, como en un modular: un cable puede ir de un
@@ -483,12 +483,12 @@ body.hay-expandido .riel { z-index: 61; }
 .parametro.con-puertos > .puerto.entrada { left: -3px; }
 .parametro.con-puertos > .puerto.salida  { right: -3px; }
 
-.cables path.de-parametro { stroke: var(--acento); stroke-width: 1.5; }
+.cables path.de-parametro { stroke: var(--calido); stroke-width: 1.5; }
 
 /* salidas vivas del audio */
 .salidas-vivas { margin-top: 10px; display: grid; gap: 4px; }
 .salidas-vivas .parametro { grid-template-columns: 52px 1fr 40px; }
 .barra-nivel {
   height: 8px; border: 1px solid var(--borde); border-radius: 2px;
-  background: linear-gradient(to right, var(--acento) var(--nivel, 0%), transparent var(--nivel, 0%));
+  background: linear-gradient(to right, var(--calido) var(--nivel, 0%), transparent var(--nivel, 0%));
 }

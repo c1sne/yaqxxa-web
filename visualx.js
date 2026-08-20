@@ -43,7 +43,7 @@ void main() {
     }
     vec2 tuv = (uv + d - 0.5) / escala + 0.5;
     if (tuv.x < 0.0 || tuv.x > 1.0 || tuv.y < 0.0 || tuv.y > 1.0) {
-      gl_FragColor = vec4(0.03, 0.04, 0.08, 1.0);
+      gl_FragColor = vec4(0.03, 0.03, 0.04, 1.0);
       return;
     }
     col = texture2D(u_tex, vec2(tuv.x, 1.0 - tuv.y)).rgb;
@@ -56,7 +56,7 @@ void main() {
       col.b = texture2D(u_tex, vec2(cb, 1.0 - tuv.y)).b;
     }
   } else {
-    col = vec3(0.03, 0.04, 0.08);
+    col = vec3(0.03, 0.03, 0.04);
     for (int i = 0; i < 8; i++) {
       if (float(i) >= u_capas) break;
       float y = (float(i) + 0.5) / u_capas;
@@ -65,7 +65,7 @@ void main() {
       float dist = abs(uv.y - y - onda);
       float grosor = (0.012 + u_peso * 0.02) * clamp(u_res.y / 320.0, 0.5, 2.0);
       float linea = smoothstep(grosor, 0.0, dist);
-      vec3 tono = mix(vec3(0.44, 0.62, 1.00), vec3(0.44, 0.82, 0.88), y);
+      vec3 tono = mix(vec3(0.88, 0.81, 0.64), vec3(0.50, 0.83, 0.76), y);
       col += tono * linea * (0.35 + u_altura * 0.65);
     }
   }

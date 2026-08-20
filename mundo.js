@@ -201,7 +201,7 @@ export async function montar(contenedor) {
   escena.setAttribute('embedded', '');
   escena.setAttribute('vr-mode-ui', 'enabled: false');       // el botón lo ponemos nosotros
   escena.setAttribute('renderer', 'colorManagement: true; antialias: true');
-  escena.setAttribute('background', 'color: #070a14');
+  escena.setAttribute('background', 'color: #0b0b0d');
 
   registrarCaminar(window.AFRAME);
   registrarSuperficieVisual(window.AFRAME);
@@ -232,7 +232,7 @@ export async function montar(contenedor) {
 
   const suelo = document.createElement('a-entity');
   suelo.setAttribute('geometry', 'primitive: plane; width: 24; height: 24');
-  suelo.setAttribute('material', 'color: #0f1730; side: double');
+  suelo.setAttribute('material', 'color: #14141a; side: double');
   suelo.setAttribute('rotation', '-90 0 0');
   suelo.setAttribute('position', '0 0 0');
   escena.append(suelo);

@@ -19,8 +19,8 @@
 <main>
 
 <!-- ─────────────── BLOQUE ARCHIVO ─────────────── -->
-<section class="bloque" id="bloque-archivo">
-  <h2>ARCHIVO <span class="tenue">· depositar</span></h2>
+<details class="bloque plegable" id="bloque-archivo" open>
+  <summary><span class="tit">ARCHIVO</span><span class="tenue"> · depositar</span></summary>
 
   <div class="cuerpo">
 
@@ -66,11 +66,11 @@
     <div id="resultado" class="resultado" hidden></div>
 
   </div>
-</section>
+</details>
 
 <!-- ─────────────── BLOQUE INVOCAR ─────────────── -->
-<section class="bloque" id="bloque-invocar">
-  <h2>INVOCAR <span class="tenue">· llamar al banco</span></h2>
+<details class="bloque plegable" id="bloque-invocar" open>
+  <summary><span class="tit">INVOCAR</span><span class="tenue"> · llamar al banco</span></summary>
   <div class="cuerpo">
     <div class="acciones">
       <input id="invocacion" type="text" class="invocacion" spellcheck="false"
@@ -80,7 +80,7 @@
     <p class="tenue leyenda"><code>.f</code> foto · <code>.s</code> sonido · <code>.v</code> video · <code>n</code> = número de depósito</p>
     <div id="salida" class="salida"></div>
   </div>
-</section>
+</details>
 
 <!-- ─────────────── BLOQUE MUNDO ─────────────── -->
 <details class="bloque plegable" id="bloque-mundo">
@@ -108,7 +108,7 @@
   </div>
 </details>
 
-<details class="bloque plegable">
+<details class="bloque plegable" id="bloque-doc">
   <summary><span class="tit">CÓMO FUNCIONA</span><span class="tenue"> · desplegar</span></summary>
   <div class="cuerpo doc">
 

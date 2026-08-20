@@ -260,3 +260,10 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 .parametro .valor { text-align: right; color: var(--frio); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 620px) { .parametros { grid-template-columns: 1fr; } }
+
+/* los bloques que hacen algo se distinguen de los que explican */
+#bloque-archivo > summary .tit,
+#bloque-invocar > summary .tit,
+#bloque-mundo   > summary .tit { color: var(--calido); }
+.plegable > summary { user-select: none; }
+.plegable[open] > .cuerpo { padding-top: 14px; }

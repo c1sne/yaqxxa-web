@@ -365,10 +365,34 @@ $('#entrar-vr').addEventListener('click', () => {
   try { mundo.entrarVR(); } catch (e) { $('#vr-nota').textContent = String(e.message); }
 });
 
-const doc = document.querySelector('#bloque-mundo ~ details.plegable') || document.querySelectorAll('details.plegable')[1];
+const doc = $('#bloque-doc');
 doc.addEventListener('toggle', function una() {
   if (doc.open) { capacidades(); doc.removeEventListener('toggle', una); }
 });
+
+// ── memoria de qué bloques quedaron abiertos ─────────────────────────────────
+//
+// Si vas a usar esto seguido, no tiene sentido volver a plegar lo mismo cada vez.
+// Es lo único que yaqxxa guarda de vos, y es en tu propio navegador.
+
+const ABIERTOS = 'yaqxxa.abiertos';
+
+function recordarPliegues() {
+  const bloques = [...document.querySelectorAll('details.bloque')];
+  let guardado;
+  try { guardado = JSON.parse(localStorage.getItem(ABIERTOS)); } catch { guardado = null; }
+
+  if (guardado) {
+    for (const b of bloques) if (b.id in guardado) b.open = guardado[b.id];
+  }
+  for (const b of bloques) {
+    b.addEventListener('toggle', () => {
+      const estado = Object.fromEntries(bloques.map(x => [x.id, x.open]));
+      try { localStorage.setItem(ABIERTOS, JSON.stringify(estado)); } catch {}
+    });
+  }
+}
+recordarPliegues();
 
 pintarLlaves();
 revisar();

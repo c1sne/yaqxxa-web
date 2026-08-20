@@ -32,6 +32,9 @@
   <!-- lo invocado ocupa el fondo: el tablero es el escenario -->
   <div id="escenario" class="escenario"></div>
 
+  <!-- el espacio: zoom con rueda, paneo arrastrando el fondo, doble clic vuelve -->
+  <div id="lienzo-t" class="lienzo-t">
+
   <details class="bloque" id="bloque-invocar" open>
     <summary><span class="tit">CÓDIGO</span><span class="tenue"> · el lenguaje corre acá</span></summary>
     <div class="cuerpo">
@@ -48,30 +51,34 @@
     </div>
   </details>
 
-  <details class="bloque" id="bloque-mundo">
-    <summary><span class="tit">MUNDO</span><span class="tenue"> · a-frame</span></summary>
+  <details class="bloque" id="bloque-monitor">
+    <summary><span class="tit">MONITOR</span><span class="tenue"> · a-frame</span></summary>
     <div class="cuerpo">
       <p class="tenue nota-carga" id="nota-mundo">A-Frame pesa 1,28 MB y se carga
       solo al abrir este bloque. Todavía no se descargó nada.</p>
-
       <div id="escena" class="escena"></div>
-
-      <div class="acciones">
-        <input id="traer-inv" type="text" class="invocacion chico" spellcheck="false"
-               autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
-        <button id="traer" class="btn">traer al mundo</button>
-        <button id="vaciar" class="btn">vaciar</button>
-        <span id="mundo-estado" class="progreso"></span>
-      </div>
-
-      <div id="parametros" class="parametros"></div>
-
       <div class="acciones">
         <button id="entrar-vr" class="btn" hidden>entrar en VR</button>
         <span id="vr-nota" class="tenue" style="font-size:11px"></span>
       </div>
     </div>
   </details>
+
+  <details class="bloque" id="bloque-parametros" open>
+    <summary><span class="tit">PARÁMETROS</span><span class="tenue"> · del mundo</span></summary>
+    <div class="cuerpo">
+      <div class="acciones">
+        <input id="traer-inv" type="text" class="invocacion chico" spellcheck="false"
+               autocomplete="off" placeholder="~alarako.f(0)" value="~alarako.f(0)">
+        <button id="traer" class="btn">traer</button>
+        <button id="vaciar" class="btn">vaciar</button>
+        <span id="mundo-estado" class="progreso"></span>
+      </div>
+      <div id="parametros" class="parametros"></div>
+    </div>
+  </details>
+
+  </div>
 
 </main>
 
@@ -180,10 +187,15 @@ identifier:yaqxxa-alarako-*   los depósitos de una palabra</pre>
     Se agrega dándole material.</p>
 
     <h3>El mundo</h3>
-    <p>El bloque MUNDO corre una escena de <b>A-Frame</b> embebida, y sus
-    controles son parámetros con nombre: <code>giro</code>, <code>capas</code>,
-    <code>escala</code>, <code>distancia</code>. Son exactamente los que el
-    lenguaje va a mover cuando exista.</p>
+    <p>El MONITOR corre una escena de <b>A-Frame</b> embebida. Sus controles
+    viven en el bloque PARÁMETROS y llegan por un <b>cable</b>: cada bloque
+    tiene una entrada a la izquierda y una salida a la derecha, y un cable se
+    tira de un punto al otro. Si desconectás PARÁMETROS del MONITOR, los
+    controles dejan de mover el mundo. Si conectás CÓDIGO al MONITOR, las fotos
+    invocadas entran también como textura del espacio.</p>
+    <p class="tenue">El tablero se navega: rueda para zoom, arrastrar el fondo
+    para moverse, doble clic para volver. Los bloques se redimensionan desde
+    sus bordes y su esquina. Todo queda guardado en tu navegador.</p>
     <p>Lo que importa no es que haya 3D: es que el mundo <b>lee del banco</b>.
     Una foto depositada en archive.org entra como textura de un objeto en el
     espacio. El depósito y el mundo no son dos sistemas, son el mismo material

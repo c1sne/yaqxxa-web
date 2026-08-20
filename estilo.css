@@ -68,24 +68,76 @@ a:hover { color: var(--frio); }
 
 /* ── tablero ────────────────────────────────────────────────────────────── */
 
-.tablero {
-  flex: 1; position: relative; overflow: auto;
+.tablero { flex: 1; position: relative; overflow: hidden; }
+
+.lienzo-t {
+  position: absolute; left: 0; top: 0;
+  width: 6000px; height: 6000px;
+  transform-origin: 0 0;
   background-image: radial-gradient(circle, var(--punto) 1px, transparent 1px);
   background-size: 24px 24px;
+  z-index: 1;
 }
 
-.tablero > .bloque {
+.cables { position: absolute; inset: 0; pointer-events: none; }
+.cables path {
+  fill: none; stroke: var(--frio); stroke-width: 2; opacity: .65;
+  pointer-events: visibleStroke; cursor: pointer;
+}
+.cables path:hover { opacity: 1; stroke-width: 3; }
+.cables path.tentativo { stroke-dasharray: 6 5; opacity: .9; pointer-events: none; }
+
+.lienzo-t > .bloque {
   position: absolute;
   border: 1px solid var(--borde); border-radius: 6px;
   background: var(--panel);
   box-shadow: 0 6px 24px rgba(0,0,0,.45);
-  min-width: 280px;
+  min-width: 240px;
 }
-#bloque-invocar { left: 36px; top: 30px;  width: min(560px, 62vw); }
-#bloque-mundo   { left: 36px; top: 270px; width: min(720px, 74vw); }
+.lienzo-t > .bloque[open] {
+  display: flex; flex-direction: column;
+}
+/* Chrome moderno envuelve el contenido del details en ::details-content;
+   sin esto, el wrapper corta la cadena flex y el cuerpo no estira */
+.lienzo-t > .bloque[open]::details-content {
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+.lienzo-t > .bloque:not([open]) { height: auto !important; }
+.lienzo-t > .bloque[open] > .cuerpo {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column;
+}
+#bloque-invocar    { left: 36px;  top: 30px;  width: min(560px, 46vw); height: 380px; }
+#bloque-monitor    { left: 640px; top: 30px;  width: 520px; height: 430px; }
+#bloque-parametros { left: 640px; top: 490px; width: 420px; }
+
+/* asas de redimensión */
+.asa { position: absolute; z-index: 3; }
+.asa-e  { right: -3px; top: 24px; bottom: 10px; width: 8px; cursor: ew-resize; }
+.asa-s  { left: 10px; right: 10px; bottom: -3px; height: 8px; cursor: ns-resize; }
+.asa-se { right: -4px; bottom: -4px; width: 16px; height: 16px; cursor: nwse-resize; }
+.asa-se::after {
+  content: ''; position: absolute; right: 5px; bottom: 5px;
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--tenue); border-bottom: 2px solid var(--tenue);
+}
+.bloque:hover .asa-se::after { border-color: var(--calido); }
+
+/* puertos de conexión */
+.puerto {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 13px; height: 13px;
+  border-radius: 50%; z-index: 4;
+  background: var(--fondo); border: 2px solid var(--frio);
+  cursor: crosshair; touch-action: none;
+}
+.puerto.entrada { left: -8px; }
+.puerto.salida  { right: -8px; }
+.puerto:hover { background: var(--frio); }
 
 .bloque > summary {
   list-style: none;
+  position: relative;   /* los puertos se anclan acá */
   display: flex; align-items: center; gap: 5px;
   padding: 7px 12px;
   background: #17171c;
@@ -150,7 +202,7 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 /* ── mundo ──────────────────────────────────────────────────────────────── */
 
 .escena {
-  height: 320px; background: #08080a;
+  flex: 1; min-height: 140px; background: #08080a;
   border: 1px solid var(--borde); border-radius: 3px;
   overflow: hidden; position: relative; margin-bottom: 10px;
 }
@@ -258,7 +310,9 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 @media (max-width: 899px) {
   body { overflow: auto; }
   .tablero { overflow: visible; }
-  .tablero > .bloque { position: static !important; width: auto !important; margin: 12px; }
+  .lienzo-t { position: static; width: auto; height: auto; transform: none !important; background: none; }
+  .lienzo-t > .bloque { position: static !important; width: auto !important; height: auto !important; margin: 12px; }
+  .asa, .puerto, .cables { display: none; }
   .bloque > summary { cursor: pointer; }
   .cajon { width: 100vw; }
   .riel { top: auto; bottom: 12px; right: 12px; flex-direction: row; }
@@ -271,16 +325,14 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
 
 /* ── el editor ────────────────────────────────────────────────────────────── */
 
-#bloque-invocar { width: min(640px, 68vw); }
-
 .editor-marco {
-  position: relative;
+  position: relative; flex: 1; min-height: 80px;
   background: #050506;
   border: 1px solid var(--borde); border-radius: 3px;
   overflow: hidden;
 }
 #editor {
-  display: block; width: 100%; height: 230px; resize: vertical;
+  display: block; width: 100%; height: 100%; resize: none;
   background: transparent; color: var(--texto);
   border: 0; outline: 0;
   padding: 10px 12px;

@@ -2,6 +2,7 @@
 
 import * as ia from './ia.js';
 import * as mundo from './mundo.js';
+import * as tablero from './tablero.js';
 
 const $ = s => document.querySelector(s);
 const crear = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -223,6 +224,11 @@ async function evaluarLinea(nLinea) {
   } else {
     mostrarEnEscenario(letra, r);
     anotar(`~${palabra}.${letra}(${num}) en escena · ${r.id}`);
+    if (letra === 'f' && mundoListo && tablero.conectado('bloque-invocar', 'bloque-monitor')) {
+      mundo.traer(palabra, letra, Number(num))
+        .then(() => anotar(`~${palabra}.f(${num}) → también al monitor, por el cable`))
+        .catch(() => {});
+    }
   }
 }
 
@@ -377,6 +383,10 @@ function pintarParametros() {
     rango.addEventListener('input', () => {
       const v = parseFloat(rango.value);
       val.textContent = v + spec.unidad;
+      if (!tablero.conectado('bloque-parametros', 'bloque-monitor')) {
+        anotar('PARÁMETROS está desconectado del MONITOR — tirá el cable de nuevo', 'mal');
+        return;
+      }
       mundo.poner(nombre, v);
     });
     fila.append(crear('span', null, nombre), rango, val);
@@ -385,6 +395,8 @@ function pintarParametros() {
 }
 
 async function traerAlMundo() {
+  $('#bloque-monitor').open = true;
+  await abrirMundo();
   const m = SINTAXIS.exec($('#traer-inv').value.trim());
   const est = $('#mundo-estado');
   if (!m) { est.textContent = 'la forma es ~palabra.f(0)'; return; }
@@ -395,8 +407,8 @@ async function traerAlMundo() {
   } catch (e) { est.textContent = String(e.message || e); }
 }
 
-const detMundo = document.querySelector('#bloque-mundo');
-detMundo.addEventListener('toggle', () => { if (detMundo.open) abrirMundo(); });
+const detMonitor = document.querySelector('#bloque-monitor');
+detMonitor.addEventListener('toggle', () => { if (detMonitor.open) abrirMundo(); });
 $('#traer').addEventListener('click', traerAlMundo);
 $('#vaciar').addEventListener('click', () => { mundo.vaciar(); $('#mundo-estado').textContent = ''; });
 $('#entrar-vr').addEventListener('click', () => {
@@ -463,60 +475,31 @@ function recordarPliegues() {
 }
 recordarPliegues();
 
-// ── el tablero: los bloques se arrastran desde su cabecera ───────────────────
+// ── el tablero: zoom, arrastre, redimensión y cables ────────────────────────
 //
-// Como en un editor de nodos: agarrás la cabecera y movés el bloque. La
-// posición queda en tu navegador, junto con qué bloques dejaste abiertos.
-// Un arrastre no es un clic: si te moviste más de 5 px, soltar no pliega.
+// La semántica de los cables se define acá:
+//   PARÁMETROS → MONITOR   los controles mueven el mundo (conectado por defecto)
+//   CÓDIGO → MONITOR       las fotos invocadas entran como textura del espacio
+// Cualquier otro cable se guarda pero no hace nada, y el sistema lo dice.
 
-const POSICIONES = 'yaqxxa.posiciones';
-let zTope = 10;
+const CABLES_CON_SEMANTICA = new Set([
+  'bloque-parametros→bloque-monitor',
+  'bloque-invocar→bloque-monitor'
+]);
 
-function tableroArrastrable() {
-  if (!matchMedia('(min-width: 900px)').matches) return;
-  const tablero = $('#tablero');
-  let pos;
-  try { pos = JSON.parse(localStorage.getItem(POSICIONES)) || {}; } catch { pos = {}; }
-
-  for (const bloque of tablero.querySelectorAll('details.bloque')) {
-    if (pos[bloque.id]) {
-      bloque.style.left = pos[bloque.id].x + 'px';
-      bloque.style.top = pos[bloque.id].y + 'px';
+tablero.montarTablero({
+  alAviso: anotar,
+  cablesIniciales: [{ de: 'bloque-parametros', a: 'bloque-monitor' }],
+  alCambioDeCable: (de, a) => {
+    if (!CABLES_CON_SEMANTICA.has(de + '→' + a)) {
+      anotar('ese cable todavía no hace nada — queda guardado igual', 'mal');
     }
-    const cabecera = bloque.querySelector('summary');
-    let x0, y0, bx, by, movido = false, pid = null;
-
-    cabecera.addEventListener('pointerdown', e => {
-      if (e.button !== 0) return;
-      pid = e.pointerId;
-      try { cabecera.setPointerCapture(pid); } catch {}
-      x0 = e.clientX; y0 = e.clientY;
-      bx = bloque.offsetLeft; by = bloque.offsetTop;
-      movido = false;
-      bloque.style.zIndex = ++zTope;
-    });
-    cabecera.addEventListener('pointermove', e => {
-      if (pid === null) return;
-      const dx = e.clientX - x0, dy = e.clientY - y0;
-      if (!movido && Math.hypot(dx, dy) < 5) return;
-      movido = true;
-      bloque.style.left = Math.max(0, bx + dx) + 'px';
-      bloque.style.top = Math.max(0, by + dy) + 'px';
-    });
-    cabecera.addEventListener('pointerup', () => {
-      if (pid === null) return;
-      pid = null;
-      if (movido) {
-        pos[bloque.id] = { x: bloque.offsetLeft, y: bloque.offsetTop };
-        try { localStorage.setItem(POSICIONES, JSON.stringify(pos)); } catch {}
-      }
-    });
-    cabecera.addEventListener('click', e => {
-      if (movido) { e.preventDefault(); movido = false; }
-    });
   }
-}
-tableroArrastrable();
+});
+
+// los parámetros existen aunque el monitor no esté montado: mundo.poner()
+// guarda el estado y la escena lo toma cuando aparece
+pintarParametros();
 
 pintarLlaves();
 revisar();

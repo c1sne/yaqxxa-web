@@ -176,7 +176,7 @@ async function depositar() {
 // que en vivo es lo que uno quiere.
 
 const SLOTS = 'yaqxxa.slots';
-const SLOT_SHADER_V1 = 'yaqxxa.slot-shader-v3';
+const SLOT_SHADER_V1 = 'yaqxxa.slot-shader-v4';   // v4: el default pasa a composición
 
 const SLOT_INICIAL = `# yaqxxa · ⌃⏎ evalúa la línea · ⌃⇧⏎ los slots activos · ⌃. silencio
 # ~palabra.f(0) invoca del banco · densidad(0.5) mueve los motores
@@ -218,7 +218,9 @@ function cargarSlots() {
   // Si ya había código ahí, se conserva como slot 3.
   if (!localStorage.getItem(SLOT_SHADER_V1)) {
     const anterior = slots[1];
-    slots[1] = { texto: visual.SHADER_INICIAL, activo: true };
+    // Una composición y no GLSL crudo: se lee, se toca y enseña el lenguaje
+    // en la primera pantalla. El motor no nota la diferencia.
+    slots[1] = { texto: compositor.EJEMPLO, activo: true };
     if (anterior?.texto?.trim() && !esCodigoShader(anterior.texto)) slots.splice(2, 0, anterior);
     try { localStorage.setItem(SLOT_SHADER_V1, '1'); } catch {}
   }
@@ -1092,6 +1094,10 @@ if (notaMundo) {
 }
 
 cargarSlots();
+// Al abrir, el motor se quedaba con el shader de arranque y capas en 1: una
+// franja, o sea una línea horizontal, y parecía roto. Recomponer al cargar
+// hace que lo que se ve sea lo que dicen los slots activos, sin tocar nada.
+recomponer();
 pintarLlaves();
 revisar();
 resumenBanco();

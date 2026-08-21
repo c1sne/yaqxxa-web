@@ -25,6 +25,7 @@ uniform float u_encaje;
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res;
   float freq = 3.0 + u_densidad * 30.0;
+  float vida = 0.35 + u_densidad;   // se mueve aunque no haya señal
   vec2 d = vec2(
     sin(uv.y * freq + u_t * (0.4 + u_densidad)),
     cos(uv.x * freq * 0.7 - u_t * 0.6)
@@ -57,10 +58,13 @@ void main() {
     }
   } else {
     col = vec3(0.03, 0.03, 0.04);
+    // al menos tres franjas: con capas en 1 esto dibujaba una sola línea
+    // horizontal y parecía que el motor estaba roto
+    float bandas = max(3.0, u_capas);
     for (int i = 0; i < 8; i++) {
-      if (float(i) >= u_capas) break;
-      float y = (float(i) + 0.5) / u_capas;
-      float onda = sin(uv.x * (freq + float(i) * 2.0) + u_t * (0.5 + float(i) * 0.2))
+      if (float(i) >= bandas) break;
+      float y = (float(i) + 0.5) / bandas;
+      float onda = sin(uv.x * (freq + float(i) * 2.0) + u_t * vida * (1.0 + float(i) * 0.4))
         * 0.03 * (1.0 + u_golpe * 3.0);
       float dist = abs(uv.y - y - onda);
       float grosor = (0.012 + u_peso * 0.02) * clamp(u_res.y / 320.0, 0.5, 2.0);

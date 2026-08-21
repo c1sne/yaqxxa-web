@@ -11,6 +11,7 @@
   --texto:  #d6d6dc;
   --tenue:  #6b6b79;
   --calido: #e0cfa4;
+  --lila:   #b39ae8;   /* los encabezados y el nombre */
   --frio:   #7fd4c1;
   --alerta: #d99a7a;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -43,7 +44,7 @@ a:hover { color: var(--frio); }
   border-bottom: 1px solid var(--borde);
   z-index: 30;
 }
-.marca { font-size: 13px; letter-spacing: .26em; color: var(--calido); font-weight: 700; }
+.marca { font-size: 13px; letter-spacing: .26em; color: var(--lila); font-weight: 700; }
 .hueco { flex: 1; }
 .resumen { font-size: 11px; color: var(--tenue); }
 
@@ -155,7 +156,7 @@ a:hover { color: var(--frio); }
 }
 .bloque > summary:active { cursor: grabbing; }
 .bloque > summary::-webkit-details-marker { display: none; }
-.bloque > summary .tit { color: var(--calido); font-weight: 600; }
+.bloque > summary .tit { color: var(--lila); font-weight: 600; }
 .bloque > summary::after { content: '▸'; margin-left: auto; color: var(--tenue); }
 .bloque[open] > summary { border-bottom-color: var(--borde); }
 .bloque[open] > summary::after { content: '▾'; }
@@ -250,7 +251,7 @@ input:focus { outline: 1px solid var(--calido); outline-offset: -1px; }
   border-bottom: 1px solid var(--borde);
   font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
 }
-.cajon-cabecera .tit { color: var(--calido); font-weight: 600; }
+.cajon-cabecera .tit { color: var(--lila); font-weight: 600; }
 .cajon > .cuerpo { flex: 1; overflow-y: auto; padding: 14px; }
 
 /* ── archivo ────────────────────────────────────────────────────────────── */

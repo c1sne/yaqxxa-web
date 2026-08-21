@@ -4,11 +4,20 @@ import * as ia from './ia.js';
 import * as mundo from './mundo.js';
 import * as tablero from './tablero.js';
 import * as puente from './puente.js';
+import * as compositor from './compositor.js';
 import * as sinte from './sinte.js';
 import * as visual from './visualx.js';
 
 const $ = s => document.querySelector(s);
 const crear = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+
+function estadoHeader(nombre, estado = '', detalle = '') {
+  const el = document.querySelector(`[data-estado-modulo="${nombre}"]`);
+  if (!el) return;
+  el.classList.toggle('activo', estado === 'activo');
+  el.classList.toggle('alerta', estado === 'alerta');
+  if (detalle) el.title = detalle;
+}
 
 let piezas = [];   // [{ letra, nombre, archivo, url }]
 let visualMonitor = null;
@@ -185,6 +194,16 @@ let shaderActual = visual.SHADER_INICIAL;
 
 const esCodigoShader = fuente => /\bvoid\s+main\s*\(\s*\)/.test(fuente) && /gl_FragColor/.test(fuente);
 
+// Un slot puede traer GLSL crudo o una composición —ruido(8), gira(0.2)…—.
+// La composición se arma con compositor.js y sale como GLSL, así que de acá
+// para abajo el motor no nota la diferencia.
+const esVisual = fuente => esCodigoShader(fuente) || compositor.esComposicion(fuente);
+
+function glslDelSlot(texto) {
+  if (esCodigoShader(texto)) return texto;
+  return compositor.componer(texto);   // lanza con línea y motivo si algo falta
+}
+
 function cargarSlots() {
   const guardado = (() => { try { return JSON.parse(localStorage.getItem(SLOTS)); } catch { return null; } })();
   if (guardado && Array.isArray(guardado.slots) && guardado.slots.length) {
@@ -203,7 +222,7 @@ function cargarSlots() {
     if (anterior?.texto?.trim() && !esCodigoShader(anterior.texto)) slots.splice(2, 0, anterior);
     try { localStorage.setItem(SLOT_SHADER_V1, '1'); } catch {}
   }
-  const slotShader = slots.find(s => esCodigoShader(s.texto));
+  const slotShader = slots.find(s => esVisual(s.texto));
   if (slotShader) shaderActual = slotShader.texto;
   $('#editor').value = slots[slotActual].texto;
   try { compilarVisuales(shaderActual); } catch (e) { anotar(String(e.message || e), 'mal'); }
@@ -341,7 +360,7 @@ function recomponer(motivo = '') {
   const señal = sinte.señalInicial();
   let hayTexto = false;
   for (const s of activos) {
-    if (esCodigoShader(s.texto)) continue;
+    if (esVisual(s.texto)) continue;
     const aporte = señalDe(s.texto);
     if (Object.keys(aporte).length) hayTexto = true;
     Object.assign(señal, aporte);
@@ -357,12 +376,13 @@ function recomponer(motivo = '') {
   }
 
   // el shader: si ningún slot activo lo trae, el video se va a negro
-  const conShader = activos.find(s => esCodigoShader(s.texto));
+  const conShader = activos.find(s => esVisual(s.texto));
+  let fuenteGlsl = SHADER_NEGRO;
   try {
-    if (conShader) visual.compilar(conShader.texto);
-    else visual.compilar(SHADER_NEGRO);
-  } catch (e) { anotar('shader: ' + e.message.split('\n')[0].slice(0, 60), 'mal'); }
-  puente.emitir('shader', { fuente: conShader ? conShader.texto : SHADER_NEGRO });
+    if (conShader) fuenteGlsl = glslDelSlot(conShader.texto);
+    visual.compilar(fuenteGlsl);
+  } catch (e) { anotar(e.message.split('\n')[0].slice(0, 80), 'mal'); }
+  puente.emitir('shader', { fuente: fuenteGlsl });
 
   // y las fotos del banco: sin slot activo que invoque, no queda textura
   if (!activos.some(s => invocaFoto(s.texto))) {
@@ -434,11 +454,17 @@ function anotar(texto, clase) {
 
 function evaluarShader(fuente, numSlot = slotActual, alaVista = true) {
   try {
-    compilarVisuales(fuente);
-    shaderActual = fuente;
-    puente.emitir('shader', { fuente });
+    // una composición se arma primero; el GLSL crudo pasa tal cual
+    const compuesto = !esCodigoShader(fuente);
+    const glsl = glslDelSlot(fuente);
+    compilarVisuales(glsl);
+    shaderActual = glsl;
+    puente.emitir('shader', { fuente: glsl });
     if (alaVista) destello(lineaDelCursor($('#editor')));
-    anotar(`slot ${numSlot + 1} · shader compilado → VIDEO → MONITOR`);
+    const pasos = compuesto
+      ? fuente.split('\n').map(l => l.split('#')[0].trim()).filter(Boolean).length + ' operaciones'
+      : 'shader';
+    anotar(`slot ${numSlot + 1} · ${pasos} → VIDEO`);
   } catch (e) {
     if (alaVista) destello(lineaDelCursor($('#editor')), 'mal');
     anotar(`slot ${numSlot + 1} · ${String(e.message || e).trim()}`, 'mal');
@@ -555,7 +581,7 @@ function evaluarTodo() {
   if (!activos.length) { anotar('todos los slots están apagados', 'mal'); return; }
 
   for (const [s, i] of activos) {
-    if (esCodigoShader(s.texto)) {
+    if (esVisual(s.texto)) {
       evaluarShader(s.texto, i, i === slotActual);
       continue;
     }
@@ -590,7 +616,13 @@ async function resumenBanco() {
     $('#resumen-banco').textContent = total
       ? `${n} palabra(s) · ${total} depósito(s)`
       : 'el banco está vacío';
-  } catch (e) { $('#resumen-banco').textContent = e instanceof ia.Saturado ? 'archive.org saturado' : 'no pude leer el banco'; }
+    document.querySelector('.barra')?.setAttribute('data-banco', 'activo');
+    estadoHeader('bank', 'activo', total ? `${total} depósitos disponibles` : 'banco conectado, sin depósitos');
+  } catch (e) {
+    $('#resumen-banco').textContent = e instanceof ia.Saturado ? 'archive.org saturado' : 'no pude leer el banco';
+    document.querySelector('.barra')?.setAttribute('data-banco', 'alerta');
+    estadoHeader('bank', 'alerta', 'no se pudo consultar el banco');
+  }
 }
 
 // ── capacidades del dispositivo ──────────────────────────────────────────────
@@ -678,6 +710,7 @@ async function abrirMundo() {
   try {
     await mundo.montar($('#escena'));
     mundoListo = true;
+    estadoHeader('xr', 'activo', 'mundo inmersivo montado');
     nota.innerHTML = '<a href="https://aframe.io/" target="_blank" rel="noopener">A-Frame ' +
       (window.AFRAME?.version || '') + '</a> — desde <code>vendor/</code>, sin CDN.';
     pintarParametros();
@@ -937,6 +970,7 @@ const CABLES_CON_SEMANTICA = new Set([
 function sincronizarSalidaVisual() {
   const activa = tablero.conectado('bloque-video', 'bloque-monitor');
   mundo.usarSalidaVisual(activa ? visualMonitor?.salida() : null);
+  estadoHeader('video', activa ? 'activo' : '', activa ? 'video conectado al monitor' : 'video desconectado');
   puente.emitir('salida-video', { activa });
 }
 
@@ -1022,6 +1056,7 @@ function refrescarAudio() {
   const b = $('#audio-onoff');
   b.textContent = sinte.estaCorriendo() ? 'sonando' : 'apagado';
   b.classList.toggle('activo', sinte.estaCorriendo());
+  estadoHeader('audio', sinte.estaCorriendo() ? 'activo' : '', sinte.estaCorriendo() ? 'motor de audio activo' : 'motor de audio apagado');
 }
 $('#audio-onoff').addEventListener('click', async () => {
   if (sinte.estaCorriendo()) sinte.detener();
@@ -1032,6 +1067,12 @@ salidaDelAudio();
 
 setInterval(() => {
   const n = sinte.nivel();
+  const barra = document.querySelector('.barra');
+  if (barra) {
+    barra.style.setProperty('--audio-escala', Math.max(.16, n).toFixed(3));
+    barra.style.setProperty('--audio-opacidad', Math.max(.18, n).toFixed(3));
+    barra.style.setProperty('--traza-ancho', (8 + n * 72).toFixed(1) + '%');
+  }
   $('#audio-medidor').style.setProperty('--nivel', (n * 100).toFixed(1) + '%');
   visual.nivel(n);
   visualMonitor?.nivel(n);

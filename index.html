@@ -10,9 +10,29 @@
 <body>
 
 <header class="barra">
-  <span class="marca">yaqxxa</span>
+  <div class="identidad" aria-label="yaqxxa">
+    <span class="marca-corte" aria-hidden="true"></span>
+    <span class="marca" data-eco="YAQXXA">YAQXXA</span>
+    <span class="marca-indice">YQX/01</span>
+  </div>
+
+  <div class="marca-medidor" aria-hidden="true">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="bus-header" aria-label="estado del instrumento">
+    <span class="estado-modulo" data-estado-modulo="bank" data-corto="B"><i></i>BANK</span>
+    <span class="estado-modulo" data-estado-modulo="audio" data-corto="A"><i></i>AUD</span>
+    <span class="estado-modulo" data-estado-modulo="video" data-corto="V"><i></i>VID</span>
+    <span class="estado-modulo" data-estado-modulo="xr" data-corto="X"><i></i>XR</span>
+  </div>
+
   <span class="hueco"></span>
-  <span id="resumen-banco" class="resumen">…</span>
+  <div class="banco-header">
+    <span class="banco-pulso" aria-hidden="true"></span>
+    <span id="resumen-banco" class="resumen">consultando banco</span>
+  </div>
+  <div class="traza-header" aria-hidden="true"><span></span></div>
 </header>
 
 <!-- riel de iconos: los paneles que no son bloques del tablero viven acá -->

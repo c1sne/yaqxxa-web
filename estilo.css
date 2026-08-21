@@ -37,16 +37,131 @@ a:hover { color: var(--frio); }
 /* ── barra ──────────────────────────────────────────────────────────────── */
 
 .barra {
+  --audio-escala: .16;
+  --audio-opacidad: .18;
+  --traza-ancho: 8%;
   flex: 0 0 auto;
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 14px;
-  background: var(--panel);
+  position: relative;
+  display: flex; align-items: stretch; gap: 0;
+  min-height: 52px;
+  padding: 0 16px;
+  background: #101014;
   border-bottom: 1px solid var(--borde);
   z-index: 30;
 }
-.marca { font-size: 13px; letter-spacing: .26em; color: var(--lila); font-weight: 700; }
+.identidad {
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  min-width: 210px;
+  padding: 0 18px 0 12px;
+  border-right: 1px solid #303039;
+  overflow: hidden;
+}
+.marca-corte {
+  position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  background: var(--calido);
+  box-shadow: 5px 0 0 #2e5b54;
+}
+.marca {
+  position: relative;
+  color: #f0f0e9;
+  font-size: 17px; line-height: 1;
+  letter-spacing: .2em;
+  font-weight: 800;
+  text-shadow: 0 0 16px rgba(127,212,193,.18);
+}
+.marca::after {
+  content: attr(data-eco);
+  position: absolute; inset: 0;
+  color: var(--frio);
+  opacity: .16;
+  clip-path: inset(55% 0 20% 0);
+  transform: translate(2px, 1px);
+  pointer-events: none;
+}
+.marca-indice {
+  align-self: flex-start;
+  margin-top: 11px;
+  color: #555563;
+  font-size: 8px; line-height: 1;
+  letter-spacing: .08em;
+}
+.marca-medidor {
+  width: 72px;
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  padding: 0 12px;
+  border-right: 1px solid #303039;
+}
+.marca-medidor i {
+  width: 2px; height: 24px;
+  background: var(--frio);
+  opacity: var(--audio-opacidad);
+  transform: scaleY(var(--audio-escala));
+  transition: transform 80ms linear, opacity 80ms linear;
+}
+.marca-medidor i:nth-child(2), .marca-medidor i:nth-child(7) { height: 15px; }
+.marca-medidor i:nth-child(3), .marca-medidor i:nth-child(6) { height: 30px; }
+.marca-medidor i:nth-child(4), .marca-medidor i:nth-child(5) { height: 20px; background: var(--calido); }
+.bus-header { display: flex; align-items: stretch; }
+.estado-modulo {
+  min-width: 54px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: #646472;
+  border-right: 1px solid #24242b;
+  font-size: 9px; line-height: 1;
+  letter-spacing: .08em;
+  transition: color .18s, background .18s;
+}
+.estado-modulo i {
+  width: 5px; height: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.estado-modulo.activo { color: var(--frio); background: #101a19; }
+.estado-modulo.activo i { background: currentColor; box-shadow: 0 0 7px currentColor; }
+.estado-modulo.alerta { color: var(--alerta); background: #1a1311; }
 .hueco { flex: 1; }
-.resumen { font-size: 11px; color: var(--tenue); }
+.banco-header {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 174px;
+  padding-left: 14px;
+  border-left: 1px solid #303039;
+}
+.banco-pulso {
+  width: 6px; height: 6px;
+  background: #50505b;
+  border-radius: 50%;
+}
+.barra[data-banco="activo"] .banco-pulso { background: var(--frio); box-shadow: 0 0 8px rgba(127,212,193,.7); }
+.barra[data-banco="alerta"] .banco-pulso { background: var(--alerta); }
+.resumen {
+  max-width: 220px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; color: #858592;
+  font-variant-numeric: tabular-nums;
+}
+.traza-header {
+  position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 1px; overflow: hidden;
+  background: #26262e;
+}
+.traza-header span {
+  display: block; height: 100%;
+  width: var(--traza-ancho);
+  background: var(--frio);
+  box-shadow: 0 0 8px rgba(127,212,193,.8);
+  transition: width 80ms linear;
+}
+
+@media (max-width: 760px) {
+  .barra { padding: 0 10px; }
+  .identidad { min-width: 142px; padding-right: 8px; }
+  .marca { font-size: 15px; }
+  .marca-indice, .marca-medidor { display: none; }
+  .estado-modulo { min-width: 34px; font-size: 0; }
+  .estado-modulo::after { content: attr(data-corto); font-size: 8px; }
+  .banco-header { display: none; }
+}
 
 /* ── riel de iconos, esquina derecha ────────────────────────────────────── */
 

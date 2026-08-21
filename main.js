@@ -4,6 +4,7 @@ import * as ia from './ia.js';
 import * as mundo from './mundo.js';
 import * as tablero from './tablero.js';
 import * as puente from './puente.js';
+import * as registro from './registro.js';
 import * as sinte from './sinte.js';
 import * as visual from './visualx.js';
 
@@ -780,6 +781,78 @@ $('#vaciar').addEventListener('click', () => {
 $('#entrar-vr').addEventListener('click', () => {
   try { mundo.entrarVR(); } catch (e) { $('#vr-nota').textContent = String(e.message); }
 });
+
+// ── registro ─────────────────────────────────────────────────────────────────
+//
+// Mide el flujo vivo de ediciones de Wikimedia y, sobre todo, el silencio: los
+// segundos que pasan sin que aparezca nada de Perú. Sus tres salidas son
+// cables como cualquier otro, así que el silencio puede manejar el sonido.
+
+function pintarRegistro() {
+  const m = registro.medidas();
+  $('#reg-silencio').textContent = m.corriendo ? registro.reloj(m.silencioSeg) : '—';
+  $('#reg-tasa').textContent = m.porSegundo.toFixed(1);
+  $('#reg-aqui').textContent = m.totalAqui;
+  $('#reg-barra').style.width = (m.mundo * 100).toFixed(1) + '%';
+
+  // las tres salidas viajan por los cables de parámetro
+  if (m.corriendo) {
+    propagar('bloque-registro:mundo', m.mundo);
+    propagar('bloque-registro:silencio', m.silencio);
+  }
+}
+
+function montarRegistro() {
+  $('#reg-quemide').textContent = registro.QUE_MIDE;
+
+  const caja = $('#reg-ultimo');
+  caja.append(crear('span', 'tenue', 'esperando algo de acá…'));
+
+  registro.escuchandoAqui(ev => {
+    caja.innerHTML = '';
+    caja.append(
+      crear('div', 'titulo', ev.titulo),
+      crear('div', 'tenue', ev.wiki + ' · recién')
+    );
+    caja.classList.remove('destella');
+    void caja.offsetWidth;          // reiniciar la animación
+    caja.classList.add('destella');
+    propagar('bloque-registro:aqui', 1);   // un golpe, no un nivel
+  });
+
+  registro.escuchandoEstado(e => { if (e.error) $('#reg-estado').textContent = e.error; });
+
+  // las tres salidas, con su puerto
+  const cuerpo = document.querySelector('#bloque-registro .cuerpo');
+  for (const [nombre, texto] of [
+    ['mundo', 'densidad del registro global'],
+    ['aqui', 'un golpe por cada evento de Perú'],
+    ['silencio', 'segundos sin nada de acá, sobre una hora']
+  ]) {
+    const fila = crear('div', 'parametro con-puertos');
+    fila.append(crear('span', null, nombre), crear('span', 'tenue', texto));
+    cuerpo.append(fila);
+    fila.append(tablero.crearPuerto(`bloque-registro:${nombre}`, 'salida',
+      `salida de ${nombre} — arrastra a un parámetro`));
+  }
+
+  $('#reg-onoff').addEventListener('click', () => {
+    if (registro.corriendo()) {
+      registro.detener();
+      $('#reg-onoff').textContent = 'escuchar el flujo';
+      $('#reg-onoff').classList.remove('activo');
+      $('#reg-estado').textContent = '';
+    } else {
+      registro.iniciar();
+      $('#reg-onoff').textContent = 'escuchando';
+      $('#reg-onoff').classList.add('activo');
+      $('#reg-estado').textContent = 'conectado a Wikimedia';
+    }
+  });
+
+  setInterval(pintarRegistro, 500);
+}
+montarRegistro();
 
 // ── cajones del riel ─────────────────────────────────────────────────────────
 //

@@ -244,13 +244,14 @@ function cerrarSlot(i) {
   $('#editor').value = slots[slotActual].texto;
   guardarSlots();
   pintarSlots();
+  recomponer(`slot cerrado · quedan ${slots.length}`);
 }
 
 function alternarSlot(i) {
   slots[i].activo = !slots[i].activo;
   guardarSlots();
   pintarSlots();
-  anotar(`slot ${i + 1} ${slots[i].activo ? 'activo' : 'apagado'}`);
+  recomponer(`slot ${i + 1} ${slots[i].activo ? 'activo' : 'apagado'}`);
 }
 
 function pintarSlots() {
@@ -298,6 +299,79 @@ const LINEA_ALTO = 20;   // px — tiene que coincidir con el line-height del CS
 const SEÑAL = /^(densidad|peso|pulso|azar|capas|cola)\s*\(\s*([\d.,\s]*)\s*\)$/;
 
 const lim = (v, a, b) => Math.min(b, Math.max(a, v));
+
+/** El shader que deja el VIDEO en negro cuando ningún slot activo trae GLSL. */
+const SHADER_NEGRO = `precision mediump float;
+void main() { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); }`;
+
+/** Lee las palabras de señal de un texto sin aplicarlas a nada. */
+function señalDe(texto) {
+  const s = {};
+  for (const cruda of texto.split('\n')) {
+    const linea = cruda.split('#')[0].trim();
+    const m = SEÑAL.exec(linea);
+    if (!m) continue;
+    const args = m[2].split(',').map(x => parseFloat(x)).filter(x => !Number.isNaN(x));
+    if (!args.length) continue;
+    const p = m[1];
+    if (p === 'pulso') s.pulso = { bpm: lim(args[0], 30, 240), jitter: lim(args[1] ?? 0, 0, 1) };
+    else if (p === 'capas') s.capas = Math.round(lim(args[0], 1, 8));
+    else if (p === 'cola') s.cola = lim(args[0], 0, 0.95);
+    else s[p] = lim(args[0], 0, 1);
+  }
+  return s;
+}
+
+const invocaFoto = texto => texto.split('\n')
+  .some(l => SINTAXIS.test(l.split('#')[0].trim()));
+
+/**
+ * El estado de los motores se DERIVA de los slots activos: no se acumula.
+ *
+ * Antes la señal se mandaba al motor y ahí quedaba, así que apagar la casilla
+ * de un slot no deshacía nada — el sonido seguía igual. Ahora se recompone
+ * desde cero cada vez que cambia el conjunto de slots activos: apagar o cerrar
+ * un slot quita su aporte de verdad, y si era el único que ponía densidad, se
+ * va a silencio. Lo mismo con el shader: sin GLSL activo, el video va a negro.
+ */
+function recomponer(motivo = '') {
+  if (slots[slotActual]) slots[slotActual].texto = $('#editor').value;
+  const activos = slots.filter(s => s.activo);
+
+  const señal = sinte.señalInicial();
+  let hayTexto = false;
+  for (const s of activos) {
+    if (esCodigoShader(s.texto)) continue;
+    const aporte = señalDe(s.texto);
+    if (Object.keys(aporte).length) hayTexto = true;
+    Object.assign(señal, aporte);
+  }
+
+  if (tablero.conectado('bloque-codigo', 'bloque-audio')) {
+    sinte.poner(señal);
+    if (!hayTexto || !señal.densidad) { sinte.detener(); refrescarAudio(); }
+  }
+  if (tablero.conectado('bloque-codigo', 'bloque-video')) {
+    ponerEnVisuales(señal);
+    puente.emitir('senal-video', señal);
+  }
+
+  // el shader: si ningún slot activo lo trae, el video se va a negro
+  const conShader = activos.find(s => esCodigoShader(s.texto));
+  try {
+    if (conShader) visual.compilar(conShader.texto);
+    else visual.compilar(SHADER_NEGRO);
+  } catch (e) { anotar('shader: ' + e.message.split('\n')[0].slice(0, 60), 'mal'); }
+  puente.emitir('shader', { fuente: conShader ? conShader.texto : SHADER_NEGRO });
+
+  // y las fotos del banco: sin slot activo que invoque, no queda textura
+  if (!activos.some(s => invocaFoto(s.texto))) {
+    visual.vaciarTextura();
+    puente.emitir('vaciar', null);
+  }
+
+  if (motivo) anotar(motivo);
+}
 
 function aplicarSeñal(nLinea, palabra, brutos, alaVista = true, donde = null) {
   donde = donde ?? `línea ${nLinea + 1}`;
@@ -494,6 +568,9 @@ function evaluarTodo() {
     }
   }
   if (activos.length > 1) anotar(`evaluados ${activos.length} slots`);
+  // recomponer al final: si un slot apagado había dejado señal puesta antes,
+  // acá se va
+  recomponer();
 }
 
 /** Los chips del depósito escriben la invocación en el editor y la evalúan. */

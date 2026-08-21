@@ -110,6 +110,29 @@ export const OPERACIONES = {
     glsl: `return vec2(abs(_st.x - 0.5) + 0.5, _st.y);`
   },
 
+  // ---- espacio que escucha -------------------------------------------------
+  // Estas usan el sonido. Sin ellas los uniforms del audio quedaban
+  // declarados y sin usar, o sea que "reacciona al instrumento" era una
+  // promesa y no un hecho.
+  late: {
+    tipo: 'espacio',
+    args: [['cuanto', 0.4]],
+    glsl: `return (_st - 0.5) / max(0.05, 1.0 + u_nivel * cuanto) + 0.5;`
+  },
+  sacude: {
+    tipo: 'espacio',
+    args: [['cuanto', 0.05]],
+    glsl: `return _st + vec2(_azar(vec2(u_t, 0.0)) - 0.5,
+                             _azar(vec2(0.0, u_t)) - 0.5) * u_golpe * cuanto;`
+  },
+  giraConGolpe: {
+    tipo: 'espacio',
+    args: [['cuanto', 1.5]],
+    glsl: `vec2 c = _st - 0.5;
+           float a = u_golpe * cuanto;
+           return vec2(c.x * cos(a) - c.y * sin(a), c.x * sin(a) + c.y * cos(a)) + 0.5;`
+  },
+
   // ---- color: transformar lo que se vio -----------------------------------
   invierte: {
     tipo: 'color',
@@ -146,6 +169,24 @@ export const OPERACIONES = {
     tipo: 'color',
     args: [['r', 1], ['g', 0.7], ['b', 0.4]],
     glsl: `return vec4(_c0.rgb * vec3(r, g, b), _c0.a);`
+  },
+
+  // ---- color que escucha ---------------------------------------------------
+  enciende: {
+    tipo: 'color',
+    args: [['cuanto', 1]],
+    glsl: `return vec4(_c0.rgb * (1.0 + u_nivel * cuanto), _c0.a);`
+  },
+  destella: {
+    tipo: 'color',
+    args: [['cuanto', 1]],
+    glsl: `return vec4(mix(_c0.rgb, 1.0 - _c0.rgb, clamp(u_golpe * cuanto, 0.0, 1.0)), _c0.a);`
+  },
+  segunSeñal: {
+    tipo: 'color',
+    args: [['cuanto', 1]],
+    glsl: `float p = mix(2.0, 12.0, clamp(u_densidad, 0.0, 1.0));
+           return vec4(mix(_c0.rgb, floor(_c0.rgb * p) / p, cuanto), _c0.a);`
   },
 
   // ---- mezcla: juntar dos imágenes ----------------------------------------
@@ -202,6 +243,18 @@ export const OPERACIONES = {
     glsl: `return (_st - 0.5) / max(0.05, 1.0 + (_c0.r - 0.5) * cuanto) + 0.5;`
   }
 };
+
+/**
+ * GLSL solo acepta identificadores ASCII: una operación llamada "segunSeñal"
+ * o "añañau" rompe el shader. Así que el nombre que se escribe y el nombre
+ * que se emite son dos cosas distintas — se traduce al generar.
+ *
+ * No es un detalle: el día que el vocabulario situado entre de verdad, las
+ * palabras van a tener ñ y tildes, y tienen que funcionar.
+ */
+const aGlsl = nombre => 'op_' + nombre
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^A-Za-z0-9_]/g, '_');
 
 // firma de cada tipo: qué recibe y qué devuelve
 const TIPOS = {
@@ -268,8 +321,26 @@ const LINEA = /^([a-záéíóúñ][a-zA-Z0-9áéíóúñ]*)\s*\((.*)\)$/;
 /** Una llamada anidada como argumento: mezcla(ondas(20), 0.5) */
 const ANIDADA = /^([a-záéíóúñ][a-zA-Z0-9áéíóúñ]*)\s*\((.*)\)$/;
 
+/**
+ * Parte por comas de nivel cero: las que están dentro de una llamada anidada
+ * no cuentan. Sin esto, desviaGiro(ruido(3, 0.15), 2.5) se rompía en la coma
+ * de adentro de ruido.
+ */
+function partirArgs(texto) {
+  const partes = [];
+  let hondo = 0, actual = '';
+  for (const ch of texto) {
+    if (ch === '(') hondo++;
+    else if (ch === ')') hondo--;
+    if (ch === ',' && hondo === 0) { partes.push(actual.trim()); actual = ''; continue; }
+    actual += ch;
+  }
+  if (actual.trim()) partes.push(actual.trim());
+  return partes;
+}
+
 function argumentos(op, brutos, linea) {
-  const partes = brutos.split(',').map(x => x.trim()).filter(Boolean);
+  const partes = partirArgs(brutos);
   return op.args.map(([nombre, def], i) => {
     const dado = partes[i];
     if (dado === undefined) return String(def.toFixed ? def.toFixed(4) : def);
@@ -303,7 +374,7 @@ export function componer(texto) {
     if (op.tipo !== 'fuente') throw new Error(`línea ${nLinea}: "${m[1]}" no es una fuente`);
     usadas.add(m[1]);
     const a = argumentos({ ...op, nombre: m[1] }, m[2], nLinea);
-    return `${m[1]}(st${a.length ? ', ' + a.join(', ') : ''})`;
+    return `${aGlsl(m[1])}(st${a.length ? ', ' + a.join(', ') : ''})`;
   };
 
   for (const { n, t } of lineas) {
@@ -319,15 +390,15 @@ export function componer(texto) {
     usadas.add(nombre);
 
     if (op.tipo === 'mezcla' || op.tipo === 'desvio') {
-      // el primer argumento es otra fuente
-      const partes = m[2].split(/,(.+)/);
+      // el primer argumento es otra fuente, con sus propias comas adentro
+      const partes = partirArgs(m[2]);
       const otra = compilarFuenteSuelta(partes[0] || '', n);
-      const resto = argumentos({ ...op, nombre }, partes[1] || '', n);
+      const resto = argumentos({ ...op, nombre }, partes.slice(1).join(', '), n);
       if (op.tipo === 'mezcla') {
         if (!color) throw new Error(`línea ${n}: ${nombre}() necesita una fuente antes`);
-        color = `${nombre}(${color}, ${otra}${resto.length ? ', ' + resto.join(', ') : ''})`;
+        color = `${aGlsl(nombre)}(${color}, ${otra}${resto.length ? ', ' + resto.join(', ') : ''})`;
       } else {
-        coord = `${nombre}(${coord}, ${otra}${resto.length ? ', ' + resto.join(', ') : ''})`;
+        coord = `${aGlsl(nombre)}(${coord}, ${otra}${resto.length ? ', ' + resto.join(', ') : ''})`;
       }
       continue;
     }
@@ -337,13 +408,13 @@ export function componer(texto) {
 
     if (op.tipo === 'fuente') {
       if (color) throw new Error(`línea ${n}: ya hay una fuente — usá una mezcla para juntar dos`);
-      color = `${nombre}(${coord}${args})`;
+      color = `${aGlsl(nombre)}(${coord}${args})`;
     } else if (op.tipo === 'espacio') {
       if (color) throw new Error(`línea ${n}: ${nombre}() deforma el espacio, va antes de la fuente`);
-      coord = `${nombre}(${coord}${args})`;
+      coord = `${aGlsl(nombre)}(${coord}${args})`;
     } else if (op.tipo === 'color') {
       if (!color) throw new Error(`línea ${n}: ${nombre}() necesita una fuente antes`);
-      color = `${nombre}(${color}${args})`;
+      color = `${aGlsl(nombre)}(${color}${args})`;
     }
     contador++;
   }
@@ -354,9 +425,18 @@ export function componer(texto) {
   const funciones = [...usadas].map(nombre => {
     const op = OPERACIONES[nombre];
     const t = TIPOS[op.tipo];
+    const ascii = n => aGlsl(n).slice(3);
     const entra = t.entra.map(([tipo, n]) => `${tipo} ${n}`)
-      .concat(op.args.map(([n]) => `float ${n}`)).join(', ');
-    return `${t.sale} ${nombre}(${entra}) {\n${op.glsl.split('\n').map(l => '  ' + l.trim()).join('\n')}\n}`;
+      .concat(op.args.map(([n]) => `float ${ascii(n)}`)).join(', ');
+    // el cuerpo también menciona los argumentos: si el nombre tiene tilde,
+    // hay que traducirlo ahí adentro o el shader no encuentra la variable
+    let cuerpo = op.glsl;
+    for (const [n] of op.args) {
+      if (ascii(n) !== n) {
+        cuerpo = cuerpo.replace(new RegExp(`\\b${n}\\b`, 'g'), ascii(n));
+      }
+    }
+    return `${t.sale} ${aGlsl(nombre)}(${entra}) {\n${cuerpo.split('\n').map(l => '  ' + l.trim()).join('\n')}\n}`;
   }).join('\n\n');
 
   return `${PREAMBULO}
